@@ -22,6 +22,12 @@
 
 **Sukooru**는 브라우저 History API와 통합되어 페이지 탐색 시 스크롤 위치를 정확하게 복원하는 프레임워크 비종속적(framework-agnostic) 스크롤 복원 라이브러리입니다.
 
+### 핵심 Mental Model
+
+> **스크롤 위치는 URL에 귀속된 상태다. 사용자는 "무엇을" 복원할지만 선언하고, 라이브러리가 탐색 타이밍에 맞춰 저장과 복원을 전담한다.**
+
+TanStack Query가 "서버 상태의 생명주기를 내가 관리한다"는 mental model로 모든 API 결정을 정렬하듯, Sukooru의 모든 설계는 이 한 문장으로 수렴해야 합니다. 사용자가 `save()` / `restore()`를 언제 호출해야 하는지 고민하는 순간, 그것은 라이브러리의 설계 실패입니다.
+
 ### 핵심 문제 정의
 
 현재 웹 생태계에서 스크롤 복원의 주요 한계점:
@@ -34,10 +40,12 @@
 
 ### 설계 철학
 
-- **최소 코어 (Minimal Core)**: `@sukooru/core`는 브라우저 API 이외 어떠한 외부 의존성도 없습니다.
-- **어댑터 패턴 (Adapter Pattern)**: 프레임워크별 패키지는 코어를 래핑하여 관용적(idiomatic) API를 제공합니다.
-- **명시적 생명주기 (Explicit Lifecycle)**: 저장 / 복원 / 초기화 시점을 개발자가 완전히 제어합니다.
-- **타입 안전성 (Type Safety)**: 전체 공개 API를 TypeScript generic으로 설계합니다.
+- **선언적 API (Declarative First)**: 사용자는 *무엇을* 복원할지 선언한다. *언제* 저장/복원할지는 라이브러리가 결정한다.
+- **명시적 키 (Explicit ScrollKey)**: TanStack Query의 `queryKey`처럼 `scrollKey`를 선택적으로 명시할 수 있어 디버깅과 수동 제어가 가능하다.
+- **상태 노출 (Status Model)**: 복원 상태를 reactive하게 제공하여 사용자가 UI 피드백을 만들 수 있다.
+- **범위 격리 (Scoped Handler)**: `ScrollStateHandler`는 전역이 아닌 `containerId` 단위로 scope된다.
+- **최소 코어 (Minimal Core)**: `@sukooru/core`는 브라우저 API 이외 어떠한 외부 의존성도 없다.
+- **타입 안전성 (Type Safety)**: 전체 공개 API를 TypeScript generic으로 설계한다.
 
 ---
 
@@ -179,6 +187,16 @@ export interface ScrollHooks<T = unknown> {
 }
 
 /**
+ * 복원 진행 상태. 프레임워크 어댑터가 reactive하게 노출한다.
+ *
+ * idle      — 복원 대상이 없거나 아직 시도하지 않음
+ * restoring — 복원 진행 중 (DOM 대기 또는 applyState 실행 중)
+ * restored  — 복원 완료
+ * missed    — 저장된 데이터 없음 (첫 방문 등)
+ */
+export type ScrollRestoreStatus = 'idle' | 'restoring' | 'restored' | 'missed'
+
+/**
  * 커스텀 스크롤 상태 제공자.
  * 예: virtual scroll의 startIndex, 현재 보이는 아이템 범위 등
  */
@@ -226,52 +244,65 @@ export interface SukooruOptions<T = unknown> {
 ```typescript
 // packages/core/src/instance.ts
 
+/**
+ * registerContainer의 반환값. 등록 해제를 문자열 커플링 없이 처리한다.
+ *
+ * 기존: registerContainer(el, 'id') + unregisterContainer('id')  ← 문자열 커플링
+ * 개선: const handle = registerContainer(el, 'id') → handle.unregister()
+ */
+export interface ContainerHandle {
+  unregister: () => void
+}
+
 export interface SukooruInstance<T = unknown> {
-  /**
-   * 현재 페이지의 스크롤 상태를 저장.
-   * 등록된 컨테이너와 customHandler의 serialize()를 호출.
-   */
+  // ─── 저수준 명령형 API (프레임워크 어댑터와 Vanilla JS용) ───────────────
+
+  /** 현재 키로 스크롤 상태를 저장한다. */
   save: (key?: ScrollKey) => Promise<void>
 
   /**
-   * 지정 키(또는 현재 URL 키)에 해당하는 스크롤 상태를 복원.
-   * 저장된 데이터가 없으면 onMiss 훅 호출.
+   * 지정 키(또는 현재 URL 키)의 스크롤 상태를 복원한다.
+   * 반환: 복원 성공 여부
    */
-  restore: (key?: ScrollKey) => Promise<boolean>
+  restore: (key?: ScrollKey) => Promise<ScrollRestoreStatus>
 
-  /** 특정 키의 저장 데이터를 삭제. */
+  /** 특정 키의 저장 데이터를 삭제한다. */
   clear: (key?: ScrollKey) => void
 
-  /** 모든 저장 데이터를 삭제. */
+  /** 모든 저장 데이터를 삭제한다. */
   clearAll: () => void
 
   /**
-   * 스크롤 컨테이너를 등록.
-   * 기본값으로 window를 등록하지 않으므로 명시적 등록 필요.
+   * 스크롤 컨테이너를 등록한다.
+   * 반환된 handle.unregister()로 등록을 해제한다 (문자열 커플링 방지).
    */
-  registerContainer: (element: Element | Window, id: string) => void
-
-  /** 스크롤 컨테이너 등록 해제. */
-  unregisterContainer: (id: string) => void
+  registerContainer: (element: Element | Window, id: string) => ContainerHandle
 
   /**
-   * Virtual / Infinite Scroll용 상태 핸들러 등록.
-   * 한 번에 하나만 활성화됨. 재호출 시 교체.
+   * containerId에 귀속된 ScrollStateHandler를 등록한다.
+   * 같은 containerId로 재호출하면 교체된다.
+   * 반환된 handle.unregister()로 해제한다.
    */
-  setScrollStateHandler: (handler: ScrollStateHandler<T>) => void
+  setScrollStateHandler: (containerId: string, handler: ScrollStateHandler<T>) => ContainerHandle
 
   /** 라이프사이클 이벤트 구독. 반환값은 구독 해제 함수. */
   on: <E extends SukooruEvent>(event: E, handler: SukooruEventHandler<E, T>) => () => void
 
   /**
-   * popstate 이벤트 자동 감지 시작.
-   * 이 메서드를 호출해야 뒤로 가기 시 자동 복원이 활성화됨.
-   * 반환값: unmount 함수
+   * popstate 이벤트 감지를 시작한다.
+   * Provider/Plugin에서 한 번만 호출한다. 반환값: 정리 함수.
    */
   mount: () => () => void
 
-  /** 현재 저장된 모든 키 목록. */
+  /** 현재 저장된 모든 스크롤 키 목록. */
   readonly keys: ScrollKey[]
+
+  /**
+   * 현재 적용될 scrollKey를 반환한다.
+   * getKey 옵션을 오버라이드하지 않았다면 location.href.
+   * 디버깅 시 "어떤 키로 저장됐지?"를 확인할 때 사용한다.
+   */
+  readonly currentKey: ScrollKey
 }
 ```
 
@@ -457,11 +488,12 @@ export function createSukooru<T = unknown>(options: SukooruOptions<T> = {}): Suk
     waitForDomReady = true,
   } = options
 
-  // 단일 책임 내부 객체 4개
+  // 단일 책임 내부 객체
   const emitter = new TypedEventEmitter<T>()
   const entryManager = new EntryManager<T>(storage, createDefaultSerializer<T>(), maxEntries, ttl)
   const containerRegistry = new ContainerRegistry()
-  let scrollStateHandler: ScrollStateHandler<T> | null = null
+  // ScrollStateHandler는 containerId 단위로 scope됨
+  const stateHandlers = new Map<string, ScrollStateHandler<T>>()
 
   // --- 히스토리 탐색 추적 ---
   // 현재 페이지 키를 메모리에서 관리하여
@@ -490,19 +522,33 @@ export function createSukooru<T = unknown>(options: SukooruOptions<T> = {}): Suk
 
   // --- 저장 ---
 
+  const readScrollPosition = (id: string, element: Element | Window): ScrollPosition => ({
+    containerId: id,
+    x: element === window ? window.scrollX : (element as Element).scrollLeft,
+    y: element === window ? window.scrollY : (element as Element).scrollTop,
+  })
+
   const collectScrollPositions = (): ScrollPosition[] =>
-    containerRegistry.getAll().map(({ id, element }) => ({
-      containerId: id,
-      x: element === window ? window.scrollX : (element as Element).scrollLeft,
-      y: element === window ? window.scrollY : (element as Element).scrollTop,
-    }))
+    containerRegistry.getAll().map(({ id, element }) => readScrollPosition(id, element))
+
+  // --- 저장 ---
+
+  // containerId별로 등록된 모든 핸들러의 상태를 캡처
+  const captureAllStates = (): T | null => {
+    if (stateHandlers.size === 0) return null
+    const captured: Record<string, unknown> = {}
+    for (const [id, handler] of stateHandlers) {
+      captured[id] = handler.captureState()
+    }
+    return captured as T
+  }
 
   const save = async (key?: ScrollKey): Promise<void> => {
     const resolvedKey = key ?? getKey()
     const entry: ScrollEntry<T> = {
       savedAt: Date.now(),
       positions: collectScrollPositions(),
-      customState: scrollStateHandler?.captureState() ?? null,
+      customState: captureAllStates(),
     }
 
     let cancelled = false
@@ -516,38 +562,40 @@ export function createSukooru<T = unknown>(options: SukooruOptions<T> = {}): Suk
 
   // --- 복원 ---
 
-  const applyPositions = (positions: ScrollPosition[]): void => {
-    for (const pos of positions) {
-      const element = containerRegistry.find(pos.containerId)
-      if (!element) continue
-      if (element === window) {
-        window.scrollTo({ left: pos.x, top: pos.y, behavior: 'instant' })
-      } else {
-        (element as Element).scrollLeft = pos.x
-        ;(element as Element).scrollTop = pos.y
-      }
+  const applyPosition = (pos: ScrollPosition): void => {
+    const element = containerRegistry.find(pos.containerId)
+    if (!element) return
+    if (element === window) {
+      window.scrollTo({ left: pos.x, top: pos.y, behavior: 'instant' })
+    } else {
+      (element as Element).scrollLeft = pos.x
+      ;(element as Element).scrollTop = pos.y
     }
   }
 
   const applyEntry = async (entry: ScrollEntry<T>): Promise<void> => {
-    applyPositions(entry.positions)
-    if (scrollStateHandler && entry.customState !== null) {
-      await scrollStateHandler.applyState(entry.customState)
+    entry.positions.forEach(applyPosition)
+
+    if (entry.customState !== null) {
+      for (const [id, handler] of stateHandlers) {
+        const state = (entry.customState as Record<string, unknown>)[id]
+        if (state !== undefined) await handler.applyState(state as T)
+      }
     }
   }
 
-  const restore = async (key?: ScrollKey): Promise<boolean> => {
+  const restore = async (key?: ScrollKey): Promise<ScrollRestoreStatus> => {
     const resolvedKey = key ?? getKey()
     const entry = entryManager.get(resolvedKey)
 
     if (!entry || entryManager.isExpired(entry)) {
       emitter.emit('restore:miss', { key: resolvedKey })
-      return false
+      return 'missed'
     }
 
     let cancelled = false
     hooks.onBeforeRestore?.({ key: resolvedKey, entry, cancel: () => { cancelled = true } })
-    if (cancelled) return false
+    if (cancelled) return 'idle'
 
     emitter.emit('restore:before', { key: resolvedKey, entry })
 
@@ -560,7 +608,17 @@ export function createSukooru<T = unknown>(options: SukooruOptions<T> = {}): Suk
     }
 
     emitter.emit('restore:after', { key: resolvedKey, entry })
-    return true
+    return 'restored'
+  }
+
+  const registerContainer = (el: Element | Window, id: string): ContainerHandle => {
+    containerRegistry.register(el, id)
+    return { unregister: () => containerRegistry.unregister(id) }
+  }
+
+  const setScrollStateHandler = (containerId: string, handler: ScrollStateHandler<T>): ContainerHandle => {
+    stateHandlers.set(containerId, handler)
+    return { unregister: () => stateHandlers.delete(containerId) }
   }
 
   return {
@@ -569,11 +627,11 @@ export function createSukooru<T = unknown>(options: SukooruOptions<T> = {}): Suk
     mount,
     clear: (key) => entryManager.delete(key ?? getKey()),
     clearAll: () => entryManager.deleteAll(),
-    registerContainer: (el, id) => containerRegistry.register(el, id),
-    unregisterContainer: (id) => containerRegistry.unregister(id),
-    setScrollStateHandler: (handler) => { scrollStateHandler = handler },
+    registerContainer,
+    setScrollStateHandler,
     on: emitter.on.bind(emitter),
     get keys() { return entryManager.getAllKeys() },
+    get currentKey() { return getKey() },
   }
 }
 ```
@@ -681,71 +739,99 @@ export function SukooruProvider<T>({ children, options, instance }: SukooruProvi
 
 #### `useScrollRestore` 훅
 
+사용자는 *무엇을* 복원할지만 선언한다. `save`/`restore` 호출 타이밍은 훅이 전담한다.
+
 ```typescript
 // packages/react/src/useScrollRestore.ts
 
-interface UseScrollRestoreOptions {
-  containerId?: string   // 기본값: 'window'
-  saveOnUnmount?: boolean  // 기본값: true
+interface UseScrollRestoreOptions<T = unknown> {
+  /** 스크롤 컨테이너를 식별하는 ID. 기본값: 'window' */
+  containerId?: string
+  /**
+   * 명시적 스크롤 키. TanStack Query의 queryKey와 동일한 역할.
+   * 생략하면 현재 URL을 키로 사용한다.
+   * 디버깅 시 sukooru.currentKey로 확인 가능.
+   */
+  scrollKey?: string
+  /**
+   * Virtual / Infinite Scroll용 상태 핸들러.
+   * containerId에 scope되므로 전역 오염 없음.
+   */
+  stateHandler?: ScrollStateHandler<T>
 }
 
-export function useScrollRestore<T = unknown>(options: UseScrollRestoreOptions = {}) {
-  const { containerId = 'window', saveOnUnmount = true } = options
+export function useScrollRestore<T = unknown>(options: UseScrollRestoreOptions<T> = {}) {
+  const { containerId = 'window', scrollKey, stateHandler } = options
   const sukooru = useSukooru<T>()
   const containerRef = useRef<HTMLElement | null>(null)
+  const [status, setStatus] = useState<ScrollRestoreStatus>('idle')
 
   useEffect(() => {
     const el = containerId === 'window' ? window : containerRef.current
     if (!el) return
 
-    sukooru.registerContainer(el, containerId)
-    sukooru.restore()
+    const containerHandle = sukooru.registerContainer(el, containerId)
+    const handlerHandle = stateHandler
+      ? sukooru.setScrollStateHandler(containerId, stateHandler)
+      : null
+
+    setStatus('restoring')
+    sukooru.restore(scrollKey).then(setStatus)
 
     return () => {
-      if (saveOnUnmount) sukooru.save()
-      sukooru.unregisterContainer(containerId)
+      sukooru.save(scrollKey)
+      containerHandle.unregister()
+      handlerHandle?.unregister()
     }
-  }, [containerId])
+  }, [containerId, scrollKey])
 
-  return { ref: containerRef, sukooru }
+  // stateHandler가 교체될 때 핸들러만 갱신 (컨테이너 재등록 없음)
+  useEffect(() => {
+    if (!stateHandler) return
+    const handle = sukooru.setScrollStateHandler(containerId, stateHandler)
+    return () => handle.unregister()
+  }, [stateHandler])
+
+  return { ref: containerRef, status }
+  // sukooru 인스턴스를 노출하지 않음:
+  // 훅이 생명주기를 완전히 관리하므로 사용자가 직접 개입할 필요가 없다.
+  // 고급 제어가 필요하면 useSukooru()로 별도 접근한다.
 }
 ```
 
 #### `useVirtualScrollRestore` 훅 (TanStack Virtual)
 
+`useScrollRestore`의 `stateHandler` 옵션으로 통합할 수 있지만, TanStack Virtual 전용 타입 안전성과
+`invalidateOnCountChange` 기본값을 제공하는 편의 훅으로 유지한다.
+
 ```typescript
 // packages/react/src/useVirtualScrollRestore.ts
 
-interface UseVirtualScrollRestoreOptions<T> {
+interface UseVirtualScrollRestoreOptions {
+  containerId: string
   virtualizer: Virtualizer<any, any>
-  invalidateOnCountChange?: boolean  // 기본값: true
+  /** 아이템 수 변화 시 복원 무효화. 기본값: true */
+  invalidateOnCountChange?: boolean
 }
 
-export function useVirtualScrollRestore<T extends VirtualScrollState>(
-  options: UseVirtualScrollRestoreOptions<T>
-) {
-  const { virtualizer, invalidateOnCountChange = true } = options
-  const sukooru = useSukooru<T>()
+export function useVirtualScrollRestore(options: UseVirtualScrollRestoreOptions) {
+  const { containerId, virtualizer, invalidateOnCountChange = true } = options
 
-  useEffect(() => {
-    const handler: ScrollStateHandler<T> = {
-      captureState: () => ({
-        scrollOffset: virtualizer.scrollOffset,
-        firstVisibleIndex: virtualizer.getVirtualItems()[0]?.index ?? 0,
-        itemCount: virtualizer.options.count,
-      }) as T,
-      applyState: (state) => {
-        const countChanged = invalidateOnCountChange && virtualizer.options.count !== state.itemCount
-        if (countChanged) return
-        virtualizer.scrollToOffset(state.scrollOffset, { align: 'start' })
-      },
-    }
+  const stateHandler: ScrollStateHandler<VirtualScrollState> = useMemo(() => ({
+    captureState: () => ({
+      scrollOffset: virtualizer.scrollOffset,
+      firstVisibleIndex: virtualizer.getVirtualItems()[0]?.index ?? 0,
+      itemCount: virtualizer.options.count,
+    }),
+    applyState: (state) => {
+      const countChanged = invalidateOnCountChange && virtualizer.options.count !== state.itemCount
+      if (countChanged) return
+      virtualizer.scrollToOffset(state.scrollOffset, { align: 'start' })
+    },
+  }), [virtualizer, invalidateOnCountChange])
 
-    sukooru.setScrollStateHandler(handler)
-    sukooru.restore()
-
-    return () => { sukooru.save() }
-  }, [virtualizer])
+  // useScrollRestore에 stateHandler를 위임 — 중복 로직 없음
+  return useScrollRestore({ containerId, stateHandler })
 }
 ```
 
@@ -775,30 +861,47 @@ export function createSukooruPlugin<T>(options?: SukooruOptions<T>) {
 
 #### `useScrollRestore` 컴포저블
 
+`mount()`는 Plugin 설치 시 한 번만 호출된다. 컴포저블은 컨테이너 등록과 상태 선언만 담당한다.
+
 ```typescript
 // packages/vue/src/useScrollRestore.ts
 
-import { onMounted, onBeforeUnmount, ref, Ref } from 'vue'
+import { onMounted, onBeforeUnmount, ref, Ref, shallowRef, watch } from 'vue'
+import type { ScrollStateHandler, ScrollRestoreStatus } from '@sukooru/core'
 
-export function useScrollRestore(containerId = 'window') {
-  const sukooru = useSukooru()
+interface UseScrollRestoreOptions<T = unknown> {
+  containerId?: string
+  scrollKey?: string
+  stateHandler?: ScrollStateHandler<T>
+}
+
+export function useScrollRestore<T = unknown>(options: UseScrollRestoreOptions<T> = {}) {
+  const { containerId = 'window', scrollKey, stateHandler } = options
+  const sukooru = useSukooru<T>()
   const containerRef: Ref<HTMLElement | null> = ref(null)
-  let unmountFn: (() => void) | null = null
+  const status = shallowRef<ScrollRestoreStatus>('idle')
 
-  onMounted(() => {
-    unmountFn = sukooru.mount()
+  onMounted(async () => {
+    // mount()는 Plugin이 이미 호출함 — 여기서 호출하지 않는다
     const el = containerId === 'window' ? window : containerRef.value
-    if (el) sukooru.registerContainer(el, containerId)
-    sukooru.restore()
+    if (!el) return
+
+    const containerHandle = sukooru.registerContainer(el, containerId)
+    const handlerHandle = stateHandler
+      ? sukooru.setScrollStateHandler(containerId, stateHandler)
+      : null
+
+    status.value = 'restoring'
+    status.value = await sukooru.restore(scrollKey)
+
+    onBeforeUnmount(() => {
+      sukooru.save(scrollKey)
+      containerHandle.unregister()
+      handlerHandle?.unregister()
+    })
   })
 
-  onBeforeUnmount(() => {
-    sukooru.save()
-    sukooru.unregisterContainer(containerId)
-    unmountFn?.()
-  })
-
-  return { containerRef }
+  return { containerRef, status }
 }
 ```
 
@@ -999,7 +1102,7 @@ export function createScrollRestoreAction(sukooru: SukooruInstance) {
 ### 시나리오 1: 일반 PLP → PDP → 뒤로가기 (Next.js App Router)
 
 ```tsx
-// app/layout.tsx
+// app/layout.tsx — Provider 한 번 설치
 export default function Layout({ children }) {
   return (
     <SukooruProvider options={{ restoreDelay: 80 }}>
@@ -1008,12 +1111,13 @@ export default function Layout({ children }) {
   )
 }
 
-// app/products/page.tsx
+// app/products/page.tsx — 선언만 하면 끝
 export default function ProductListPage() {
-  const { ref } = useScrollRestore({ containerId: 'plp-scroll' })
+  const { ref, status } = useScrollRestore({ containerId: 'plp-scroll' })
 
   return (
     <main ref={ref} style={{ overflowY: 'auto', height: '100vh' }}>
+      {status === 'restoring' && <ScrollPositionLoader />}
       {products.map(p => (
         <Link key={p.id} href={`/products/${p.id}`}>
           <ProductCard product={p} />
@@ -1023,6 +1127,8 @@ export default function ProductListPage() {
   )
 }
 ```
+
+`save`/`restore`를 직접 호출하지 않는다. 탐색 타이밍 제어는 라이브러리가 전담한다.
 
 ### 시나리오 2: TanStack Virtual + Sukooru
 
@@ -1036,7 +1142,11 @@ function VirtualProductList({ products }) {
     estimateSize: () => 120,
   })
 
-  useVirtualScrollRestore({ virtualizer: rowVirtualizer })
+  // containerId와 virtualizer만 선언
+  const { status } = useVirtualScrollRestore({
+    containerId: 'virtual-list',
+    virtualizer: rowVirtualizer,
+  })
 
   return (
     <div ref={parentRef} style={{ height: '80vh', overflow: 'auto' }}>
@@ -1044,10 +1154,7 @@ function VirtualProductList({ products }) {
         {rowVirtualizer.getVirtualItems().map(virtualRow => (
           <div
             key={virtualRow.key}
-            style={{
-              position: 'absolute',
-              transform: `translateY(${virtualRow.start}px)`,
-            }}
+            style={{ position: 'absolute', transform: `translateY(${virtualRow.start}px)` }}
           >
             <ProductCard product={products[virtualRow.index]} />
           </div>
@@ -1060,38 +1167,38 @@ function VirtualProductList({ products }) {
 
 ### 시나리오 3: Infinite Scroll (TanStack Query)
 
+`captureState`는 렌더마다 최신 `data`를 참조해야 하므로 `useMemo`로 안정화한다.
+`applyState`는 데이터 복원만 담당하고, 스크롤 좌표 복원은 라이브러리가 처리한다.
+
 ```tsx
+interface InfiniteScrollState {
+  pageParams: string[]
+}
+
 function InfiniteProductList() {
-  const sukooru = useSukooru<InfiniteScrollState>()
   const containerRef = useRef<HTMLDivElement>(null)
   const { data, fetchNextPage } = useInfiniteQuery({ /* ... */ })
 
-  useEffect(() => {
-    if (!containerRef.current) return
+  // stateHandler를 useMemo로 안정화 — data 변경 시 최신 참조 유지
+  const stateHandler = useMemo<ScrollStateHandler<InfiniteScrollState>>(() => ({
+    captureState: () => ({
+      pageParams: (data?.pageParams ?? []) as string[],
+    }),
+    applyState: async ({ pageParams }) => {
+      // 역할: 데이터 복원만. 스크롤 좌표는 라이브러리가 처리
+      for (const pageParam of pageParams.slice(1)) {
+        await fetchNextPage({ pageParam })
+      }
+    },
+  }), [data?.pageParams, fetchNextPage])
 
-    sukooru.setScrollStateHandler({
-      captureState: () => ({
-        fetchedPageParams: data?.pageParams as string[] ?? [],
-        scrollTop: containerRef.current!.scrollTop,
-      }),
-      applyState: async (state) => {
-        for (const pageParam of state.fetchedPageParams.slice(1)) {
-          await fetchNextPage({ pageParam })
-        }
-        requestAnimationFrame(() => {
-          if (containerRef.current) {
-            containerRef.current.scrollTop = state.scrollTop
-          }
-        })
-      },
-    })
-
-    sukooru.restore()
-    return () => { sukooru.save() }
-  }, [])
+  const { ref, status } = useScrollRestore({
+    containerId: 'infinite-list',
+    stateHandler,
+  })
 
   return (
-    <div ref={containerRef} style={{ height: '80vh', overflow: 'auto' }}>
+    <div ref={ref} style={{ height: '80vh', overflow: 'auto' }}>
       {data?.pages.flatMap(p => p.products).map(product => (
         <ProductCard key={product.id} product={product} />
       ))}
@@ -1105,24 +1212,26 @@ function InfiniteProductList() {
 ```javascript
 import { createSukooru } from '@sukooru/core'
 
-const sukooru = createSukooru({
-  restoreDelay: 50,
-  hooks: {
-    onSave: (key, entry) => console.log('[sukooru] saved', key),
-    onRestore: (key, entry) => console.log('[sukooru] restored', key),
-    onMiss: (key) => console.log('[sukooru] no entry for', key),
-  },
-})
+const sukooru = createSukooru({ restoreDelay: 50 })
+
+// 라이프사이클 관찰은 on()으로 통일
+sukooru.on('save:after',      ({ key }) => console.log('[sukooru] saved', key))
+sukooru.on('restore:after',   ({ key }) => console.log('[sukooru] restored', key))
+sukooru.on('restore:miss',    ({ key }) => console.log('[sukooru] no entry for', key))
 
 const listContainer = document.querySelector('#product-list')
-sukooru.registerContainer(listContainer, 'product-list')
+const handle = sukooru.registerContainer(listContainer, 'product-list')
 
 const unmount = sukooru.mount()
 
-// SPA 라우터 연동
+// SPA 라우터 연동 (mount()가 popstate는 자동 처리)
+// push 기반 뒤로가기가 있다면 navigate() 래퍼 사용
 router.beforeNavigate(() => sukooru.save())
 
-window.addEventListener('beforeunload', unmount)
+window.addEventListener('beforeunload', () => {
+  handle.unregister()
+  unmount()
+})
 ```
 
 ---
