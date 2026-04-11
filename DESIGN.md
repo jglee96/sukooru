@@ -170,25 +170,23 @@ export interface ScrollPosition {
 }
 
 /**
- * 저장/복원 시점에 호출되는 생명주기 훅.
- * 반환값이 false면 해당 동작을 취소(cancel)합니다.
+ * 저장/복원 시점에 개입할 수 있는 생명주기 훅.
+ * cancel()을 호출하면 해당 동작을 취소합니다.
  */
 export interface ScrollHooks<T = unknown> {
-  onSave?: (key: ScrollKey, entry: ScrollEntry<T>) => void | false | Promise<void | false>
-  onRestore?: (key: ScrollKey, entry: ScrollEntry<T>) => void | false | Promise<void | false>
-  onClear?: (key: ScrollKey) => void
-  onMiss?: (key: ScrollKey) => void  // 복원할 데이터가 없을 때
+  onBeforeSave?: (context: { key: ScrollKey; entry: ScrollEntry<T>; cancel: () => void }) => void
+  onBeforeRestore?: (context: { key: ScrollKey; entry: ScrollEntry<T>; cancel: () => void }) => void
 }
 
 /**
  * 커스텀 스크롤 상태 제공자.
- * 예: virtual scroll의 startIndex, estimateSize 등
+ * 예: virtual scroll의 startIndex, 현재 보이는 아이템 범위 등
  */
-export interface CustomScrollHandler<T = unknown> {
-  /** 현재 커스텀 상태를 직렬화하여 반환 */
-  serialize: () => T
-  /** 저장된 상태를 받아 복원 동작을 수행 */
-  deserialize: (state: T) => void | Promise<void>
+export interface ScrollStateHandler<T = unknown> {
+  /** 현재 스크롤 상태를 캡처하여 반환 */
+  captureState: () => T
+  /** 캡처된 상태를 받아 스크롤 위치를 복원 */
+  applyState: (state: T) => void | Promise<void>
 }
 
 /**
@@ -216,10 +214,10 @@ export interface SukooruOptions<T = unknown> {
   /** 스크롤 복원 시 딜레이 (ms). SSR hydration 완료 대기 등에 사용. 기본값: 0 */
   restoreDelay?: number
   /**
-   * 복원 시 requestAnimationFrame 사용 여부.
-   * DOM 준비 전 복원 시도를 방지. 기본값: true
+   * true이면 DOM이 안정화된 후 복원 (requestAnimationFrame 대기).
+   * SSR/hydration 환경에서 복원 위치 어긋남 방지. 기본값: true
    */
-  useRaf?: boolean
+  waitForDomReady?: boolean
 }
 ```
 
@@ -256,10 +254,13 @@ export interface SukooruInstance<T = unknown> {
   /** 스크롤 컨테이너 등록 해제. */
   unregisterContainer: (id: string) => void
 
-  /** 커스텀 스크롤 핸들러 등록 (virtual/infinite scroll용). */
-  registerCustomHandler: (handler: CustomScrollHandler<T>) => void
+  /**
+   * Virtual / Infinite Scroll용 상태 핸들러 등록.
+   * 한 번에 하나만 활성화됨. 재호출 시 교체.
+   */
+  setScrollStateHandler: (handler: ScrollStateHandler<T>) => void
 
-  /** 이벤트 구독. 내부 이벤트 버스 접근. */
+  /** 라이프사이클 이벤트 구독. 반환값은 구독 해제 함수. */
   on: <E extends SukooruEvent>(event: E, handler: SukooruEventHandler<E, T>) => () => void
 
   /**
@@ -361,21 +362,19 @@ export class EntryManager<T> {
   ) {}
 
   set(key: ScrollKey, entry: ScrollEntry<T>): void {
-    this.evictExpired()
-    this.evictOverflow()  // savedAt 기준 LRU
+    this.evictExpired()   // TTL 초과 항목 정리
+    this.evictOverflow()  // maxEntries 초과 시 savedAt 기준 LRU 제거
     this.storage.set(this.toStorageKey(key), this.serializer.serialize(entry))
   }
 
   get(key: ScrollKey): ScrollEntry<T> | null {
     const raw = this.storage.get(this.toStorageKey(key))
     if (!raw) return null
-    const entry = this.serializer.deserialize(raw)
-    if (!entry) return null
-    if (this.ttl && Date.now() - entry.savedAt > this.ttl) {
-      this.storage.delete(this.toStorageKey(key))
-      return null
-    }
-    return entry
+    return this.serializer.deserialize(raw)
+  }
+
+  isExpired(entry: ScrollEntry<T>): boolean {
+    return !!this.ttl && Date.now() - entry.savedAt > this.ttl
   }
 
   private toStorageKey(key: ScrollKey): string {
@@ -442,6 +441,8 @@ export class TypedEventEmitter<T> {
 
 ### 6.3 핵심 `createSukooru` 팩토리
 
+책임을 4개의 내부 객체로 분리하여 각 함수가 한 가지 일만 합니다.
+
 ```typescript
 // packages/core/src/createSukooru.ts
 
@@ -453,103 +454,109 @@ export function createSukooru<T = unknown>(options: SukooruOptions<T> = {}): Suk
     maxEntries = 50,
     hooks = {},
     restoreDelay = 0,
-    useRaf = true,
+    waitForDomReady = true,
   } = options
 
+  // 단일 책임 내부 객체 4개
   const emitter = new TypedEventEmitter<T>()
   const entryManager = new EntryManager<T>(storage, createDefaultSerializer<T>(), maxEntries, ttl)
-  const containers = new Map<string, Element | Window>()
-  let customHandler: CustomScrollHandler<T> | null = null
+  const containerRegistry = new ContainerRegistry()
+  let scrollStateHandler: ScrollStateHandler<T> | null = null
 
-  // popstate 발생 시 흐름:
-  // 1. history.state에 현재 URL을 태깅하여 "이전 URL" 추적
-  // 2. popstate 이벤트에서 현재(복귀된) 페이지 restore()
+  // --- 히스토리 탐색 추적 ---
+  // 현재 페이지 키를 메모리에서 관리하여
+  // history.go(-N) 같은 다단계 이동 시에도 출발 페이지를 정확히 저장
+  let currentTrackedKey = getKey()
+
   const mount = (): (() => void) => {
-    history.replaceState({ ...history.state, _sukooru_key: getKey() }, '')
+    const onPopState = async () => {
+      const leavingKey = currentTrackedKey
+      const arrivingKey = getKey()
 
-    const handler = async () => {
-      const currentKey = getKey()
-      await restore(currentKey)
-      history.replaceState({ ...history.state, _sukooru_key: currentKey }, '')
+      await save(leavingKey)
+      await restore(arrivingKey)
+
+      currentTrackedKey = arrivingKey
     }
 
-    window.addEventListener('popstate', handler)
-    emitter.emit('mount', undefined as any)
+    window.addEventListener('popstate', onPopState)
+    emitter.emit('mount', {})
 
     return () => {
-      window.removeEventListener('popstate', handler)
-      emitter.emit('unmount', undefined as any)
+      window.removeEventListener('popstate', onPopState)
+      emitter.emit('unmount', {})
     }
   }
 
+  // --- 저장 ---
+
+  const collectScrollPositions = (): ScrollPosition[] =>
+    containerRegistry.getAll().map(({ id, element }) => ({
+      containerId: id,
+      x: element === window ? window.scrollX : (element as Element).scrollLeft,
+      y: element === window ? window.scrollY : (element as Element).scrollTop,
+    }))
+
   const save = async (key?: ScrollKey): Promise<void> => {
     const resolvedKey = key ?? getKey()
-
-    const positions: ScrollPosition[] = []
-    for (const [id, el] of containers) {
-      if (el === window) {
-        positions.push({ containerId: id, x: window.scrollX, y: window.scrollY })
-      } else {
-        const elem = el as Element
-        positions.push({ containerId: id, x: elem.scrollLeft, y: elem.scrollTop })
-      }
+    const entry: ScrollEntry<T> = {
+      savedAt: Date.now(),
+      positions: collectScrollPositions(),
+      customState: scrollStateHandler?.captureState() ?? null,
     }
 
-    const customState = customHandler ? customHandler.serialize() : null
-    const entry: ScrollEntry<T> = { savedAt: Date.now(), positions, customState }
+    let cancelled = false
+    hooks.onBeforeSave?.({ key: resolvedKey, entry, cancel: () => { cancelled = true } })
+    if (cancelled) return
 
     emitter.emit('save:before', { key: resolvedKey, entry })
-
-    if (hooks.onSave) {
-      const result = await hooks.onSave(resolvedKey, entry)
-      if (result === false) return
-    }
-
     entryManager.set(resolvedKey, entry)
     emitter.emit('save:after', { key: resolvedKey, entry })
+  }
+
+  // --- 복원 ---
+
+  const applyPositions = (positions: ScrollPosition[]): void => {
+    for (const pos of positions) {
+      const element = containerRegistry.find(pos.containerId)
+      if (!element) continue
+      if (element === window) {
+        window.scrollTo({ left: pos.x, top: pos.y, behavior: 'instant' })
+      } else {
+        (element as Element).scrollLeft = pos.x
+        ;(element as Element).scrollTop = pos.y
+      }
+    }
+  }
+
+  const applyEntry = async (entry: ScrollEntry<T>): Promise<void> => {
+    applyPositions(entry.positions)
+    if (scrollStateHandler && entry.customState !== null) {
+      await scrollStateHandler.applyState(entry.customState)
+    }
   }
 
   const restore = async (key?: ScrollKey): Promise<boolean> => {
     const resolvedKey = key ?? getKey()
     const entry = entryManager.get(resolvedKey)
 
-    if (!entry) {
-      hooks.onMiss?.(resolvedKey)
+    if (!entry || entryManager.isExpired(entry)) {
       emitter.emit('restore:miss', { key: resolvedKey })
       return false
     }
 
+    let cancelled = false
+    hooks.onBeforeRestore?.({ key: resolvedKey, entry, cancel: () => { cancelled = true } })
+    if (cancelled) return false
+
     emitter.emit('restore:before', { key: resolvedKey, entry })
-
-    if (hooks.onRestore) {
-      const result = await hooks.onRestore(resolvedKey, entry)
-      if (result === false) return false
-    }
-
-    const doRestore = async () => {
-      for (const pos of entry.positions) {
-        const el = containers.get(pos.containerId)
-        if (!el) continue
-        if (el === window) {
-          window.scrollTo({ left: pos.x, top: pos.y, behavior: 'instant' })
-        } else {
-          const elem = el as Element
-          elem.scrollLeft = pos.x
-          elem.scrollTop = pos.y
-        }
-      }
-
-      if (customHandler && entry.customState !== null) {
-        await customHandler.deserialize(entry.customState)
-      }
-    }
 
     if (restoreDelay > 0) await new Promise(r => setTimeout(r, restoreDelay))
 
-    if (useRaf) {
-      await new Promise<void>(r => requestAnimationFrame(() => { doRestore().then(r) }))
+    if (waitForDomReady) {
+      await new Promise<void>(resolve => requestAnimationFrame(() => applyEntry(entry).then(resolve)))
     } else {
-      await doRestore()
+      await applyEntry(entry)
     }
 
     emitter.emit('restore:after', { key: resolvedKey, entry })
@@ -557,12 +564,14 @@ export function createSukooru<T = unknown>(options: SukooruOptions<T> = {}): Suk
   }
 
   return {
-    save, restore, mount,
-    clear: (key) => { entryManager.delete(key ?? getKey()); hooks.onClear?.(key ?? getKey()) },
+    save,
+    restore,
+    mount,
+    clear: (key) => entryManager.delete(key ?? getKey()),
     clearAll: () => entryManager.deleteAll(),
-    registerContainer: (el, id) => containers.set(id, el),
-    unregisterContainer: (id) => containers.delete(id),
-    registerCustomHandler: (handler) => { customHandler = handler },
+    registerContainer: (el, id) => containerRegistry.register(el, id),
+    unregisterContainer: (id) => containerRegistry.unregister(id),
+    setScrollStateHandler: (handler) => { scrollStateHandler = handler },
     on: emitter.on.bind(emitter),
     get keys() { return entryManager.getAllKeys() },
   }
@@ -584,9 +593,9 @@ Virtual Scroll과 Infinite Scroll은 단순 Y좌표만으로 복원이 불가능
 | Infinite Scroll | `loadedPages`, `totalItems`, `scrollTop` |
 | 조합 (Infinite + Virtual) | 위 모두 |
 
-복원 로직은 도메인에 종속되므로 라이브러리가 직접 구현하지 않고, `CustomScrollHandler.deserialize` 콜백에 위임합니다.
+복원 로직은 도메인에 종속되므로 라이브러리가 직접 구현하지 않고, `ScrollStateHandler.applyState` 콜백에 위임합니다.
 
-### 7.2 Virtual Scroll 커스텀 핸들러 (TanStack Virtual)
+### 7.2 Virtual Scroll 핸들러 (TanStack Virtual)
 
 ```typescript
 interface VirtualScrollState {
@@ -595,23 +604,23 @@ interface VirtualScrollState {
   itemCount: number
 }
 
-const virtualScrollHandler: CustomScrollHandler<VirtualScrollState> = {
-  serialize: () => ({
+const virtualScrollHandler: ScrollStateHandler<VirtualScrollState> = {
+  captureState: () => ({
     scrollOffset: rowVirtualizer.scrollOffset,
     firstVisibleIndex: rowVirtualizer.getVirtualItems()[0]?.index ?? 0,
     itemCount: rowVirtualizer.options.count,
   }),
-  deserialize: async (state) => {
-    // itemCount가 일치해야 복원 의미 있음
-    if (rowVirtualizer.options.count !== state.itemCount) return
+  applyState: (state) => {
+    const countChanged = rowVirtualizer.options.count !== state.itemCount
+    if (countChanged) return
     rowVirtualizer.scrollToOffset(state.scrollOffset, { align: 'start' })
   },
 }
 
-sukooru.registerCustomHandler(virtualScrollHandler)
+sukooru.setScrollStateHandler(virtualScrollHandler)
 ```
 
-### 7.3 Infinite Scroll 커스텀 핸들러
+### 7.3 Infinite Scroll 핸들러
 
 ```typescript
 interface InfiniteScrollState {
@@ -620,18 +629,16 @@ interface InfiniteScrollState {
   totalLoadedItems: number
 }
 
-const infiniteHandler: CustomScrollHandler<InfiniteScrollState> = {
-  serialize: () => ({
+const infiniteScrollHandler: ScrollStateHandler<InfiniteScrollState> = {
+  captureState: () => ({
     loadedPageKeys: loadedPages.map(p => p.cursor),
     scrollTop: containerEl.scrollTop,
     totalLoadedItems: items.length,
   }),
-  deserialize: async (state) => {
-    // 페이지를 순차적으로 재패치
+  applyState: async (state) => {
     for (const cursor of state.loadedPageKeys) {
       await fetchPage(cursor)
     }
-    // DOM 업데이트 후 스크롤 복원
     await nextTick()
     containerEl.scrollTop = state.scrollTop
   },
@@ -721,19 +728,20 @@ export function useVirtualScrollRestore<T extends VirtualScrollState>(
   const sukooru = useSukooru<T>()
 
   useEffect(() => {
-    const handler: CustomScrollHandler<T> = {
-      serialize: () => ({
+    const handler: ScrollStateHandler<T> = {
+      captureState: () => ({
         scrollOffset: virtualizer.scrollOffset,
         firstVisibleIndex: virtualizer.getVirtualItems()[0]?.index ?? 0,
         itemCount: virtualizer.options.count,
       }) as T,
-      deserialize: async (state) => {
-        if (invalidateOnCountChange && virtualizer.options.count !== state.itemCount) return
+      applyState: (state) => {
+        const countChanged = invalidateOnCountChange && virtualizer.options.count !== state.itemCount
+        if (countChanged) return
         virtualizer.scrollToOffset(state.scrollOffset, { align: 'start' })
       },
     }
 
-    sukooru.registerCustomHandler(handler)
+    sukooru.setScrollStateHandler(handler)
     sukooru.restore()
 
     return () => { sukooru.save() }
@@ -1061,12 +1069,12 @@ function InfiniteProductList() {
   useEffect(() => {
     if (!containerRef.current) return
 
-    sukooru.registerCustomHandler({
-      serialize: () => ({
+    sukooru.setScrollStateHandler({
+      captureState: () => ({
         fetchedPageParams: data?.pageParams as string[] ?? [],
         scrollTop: containerRef.current!.scrollTop,
       }),
-      deserialize: async (state) => {
+      applyState: async (state) => {
         for (const pageParam of state.fetchedPageParams.slice(1)) {
           await fetchNextPage({ pageParam })
         }
@@ -1149,17 +1157,27 @@ const restore = async (key?: ScrollKey) => {
 
 `EntryManager.set()` 내에서 `savedAt` 기준 LRU 방식으로 가장 오래된 항목부터 제거 후 재시도합니다.
 
-### 커스텀 핸들러 `deserialize` 실패 처리
+### `applyState` 실패 처리
 
-커스텀 상태 복원 실패 시 기본 스크롤 위치만 복원하고 계속 진행합니다.
+커스텀 상태 복원 실패 시 기본 스크롤 위치만 복원하고 계속 진행합니다. 실패는 이벤트 버스로 관찰합니다.
 
 ```typescript
 try {
-  await customHandler.deserialize(entry.customState)
+  await scrollStateHandler.applyState(entry.customState)
 } catch (error) {
   emitter.emit('restore:error', { key: resolvedKey, error })
-  // 기본 스크롤 위치 복원은 이미 완료된 상태이므로 계속 진행
+  // 기본 위치 복원(applyPositions)은 이미 완료된 상태이므로 계속 진행
 }
+```
+
+### 라이프사이클 관찰
+
+`hooks`와 이벤트 버스 중복 없이, 모든 라이프사이클 관찰은 `on()`으로 통일합니다.
+
+```typescript
+sukooru.on('restore:miss', ({ key }) => console.warn('복원 데이터 없음:', key))
+sukooru.on('restore:error', ({ key, error }) => console.error('복원 실패:', key, error))
+sukooru.on('save:after', ({ key }) => console.log('저장 완료:', key))
 ```
 
 ---
