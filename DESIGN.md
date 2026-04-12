@@ -44,7 +44,7 @@ TanStack Query가 "서버 상태의 생명주기를 내가 관리한다"는 ment
 - **명시적 키 (Explicit ScrollKey)**: TanStack Query의 `queryKey`처럼 `scrollKey`를 선택적으로 명시할 수 있어 디버깅과 수동 제어가 가능하다.
 - **상태 노출 (Status Model)**: 복원 상태를 reactive하게 제공하여 사용자가 UI 피드백을 만들 수 있다.
 - **범위 격리 (Scoped Handler)**: `ScrollStateHandler`는 전역이 아닌 `containerId` 단위로 scope된다.
-- **최소 코어 (Minimal Core)**: `@sukooru/core`는 브라우저 API 이외 어떠한 외부 의존성도 없다.
+- **최소 코어 (Minimal Core)**: `sukooru-core`는 브라우저 API 이외 어떠한 외부 의존성도 없다.
 - **타입 안전성 (Type Safety)**: 전체 공개 API를 TypeScript generic으로 설계한다.
 
 ---
@@ -54,12 +54,12 @@ TanStack Query가 "서버 상태의 생명주기를 내가 관리한다"는 ment
 ```
 sukooru/
 ├── packages/
-│   ├── core/               @sukooru/core
-│   ├── react/              @sukooru/react
-│   ├── vue/                @sukooru/vue
-│   ├── next/               @sukooru/next
-│   ├── nuxt/               @sukooru/nuxt
-│   └── svelte/             @sukooru/svelte
+│   ├── core/               sukooru-core
+│   ├── react/              sukooru-react
+│   ├── vue/                sukooru-vue
+│   ├── next/               sukooru-next
+│   ├── nuxt/               sukooru-nuxt
+│   └── svelte/             sukooru-svelte
 ├── examples/
 │   ├── next-app/
 │   ├── vite-react/
@@ -74,14 +74,14 @@ sukooru/
 ### 패키지 간 의존 관계
 
 ```
-@sukooru/react   ──┐
-@sukooru/vue     ──┤
-@sukooru/next    ──┤──► @sukooru/core
-@sukooru/nuxt    ──┤
-@sukooru/svelte  ──┘
+sukooru-react   ──┐
+sukooru-vue     ──┤
+sukooru-next    ──┤──► sukooru-core
+sukooru-nuxt    ──┤
+sukooru-svelte  ──┘
 ```
 
-프레임워크 패키지는 `@sukooru/core`를 `peerDependency`가 아닌 `dependency`로 번들합니다. 코어가 경량(< 3 KB gzip)이므로 중복 포함 비용이 낮고, 버전 불일치 문제를 방지합니다.
+프레임워크 패키지는 `sukooru-core`를 `peerDependency`가 아닌 `dependency`로 번들합니다. 코어가 경량(< 3 KB gzip)이므로 중복 포함 비용이 낮고, 버전 불일치 문제를 방지합니다.
 
 ---
 
@@ -129,7 +129,7 @@ export default defineConfig({
 
 ```json
 {
-  "name": "@sukooru/core",
+  "name": "sukooru-core",
   "exports": {
     ".": {
       "import": "./dist/index.mjs",
@@ -143,7 +143,7 @@ export default defineConfig({
 
 ---
 
-## 4. 핵심 타입 시스템 (`@sukooru/core`)
+## 4. 핵심 타입 시스템 (`sukooru-core`)
 
 ### 4.1 기반 인터페이스
 
@@ -707,7 +707,7 @@ const infiniteScrollHandler: ScrollStateHandler<InfiniteScrollState> = {
 
 ## 8. 프레임워크 어댑터
 
-### 8.1 `@sukooru/react`
+### 8.1 `sukooru-react`
 
 #### Context Provider
 
@@ -837,7 +837,7 @@ export function useVirtualScrollRestore(options: UseVirtualScrollRestoreOptions)
 
 ---
 
-### 8.2 `@sukooru/vue`
+### 8.2 `sukooru-vue`
 
 #### Vue Plugin
 
@@ -845,7 +845,7 @@ export function useVirtualScrollRestore(options: UseVirtualScrollRestoreOptions)
 // packages/vue/src/plugin.ts
 
 import { App, InjectionKey } from 'vue'
-import { createSukooru, SukooruInstance, SukooruOptions } from '@sukooru/core'
+import { createSukooru, SukooruInstance, SukooruOptions } from 'sukooru-core'
 
 export const SUKOORU_KEY: InjectionKey<SukooruInstance> = Symbol('sukooru')
 
@@ -867,7 +867,7 @@ export function createSukooruPlugin<T>(options?: SukooruOptions<T>) {
 // packages/vue/src/useScrollRestore.ts
 
 import { onMounted, onBeforeUnmount, ref, Ref, shallowRef, watch } from 'vue'
-import type { ScrollStateHandler, ScrollRestoreStatus } from '@sukooru/core'
+import type { ScrollStateHandler, ScrollRestoreStatus } from 'sukooru-core'
 
 interface UseScrollRestoreOptions<T = unknown> {
   containerId?: string
@@ -916,7 +916,7 @@ export function useScrollRestore<T = unknown>(options: UseScrollRestoreOptions<T
 </template>
 
 <script setup lang="ts">
-import { useScrollRestore } from '@sukooru/vue'
+import { useScrollRestore } from 'sukooru-vue'
 
 const { containerRef } = useScrollRestore('product-list')
 </script>
@@ -925,7 +925,7 @@ const { containerRef } = useScrollRestore('product-list')
 ```typescript
 // main.ts
 import { createApp } from 'vue'
-import { createSukooruPlugin } from '@sukooru/vue'
+import { createSukooruPlugin } from 'sukooru-vue'
 
 createApp(App)
   .use(createSukooruPlugin({ restoreDelay: 50 }))
@@ -934,7 +934,7 @@ createApp(App)
 
 ---
 
-### 8.3 `@sukooru/next`
+### 8.3 `sukooru-next`
 
 Next.js는 App Router와 Pages Router의 구조가 다르므로 각각 대응합니다.
 
@@ -948,7 +948,7 @@ App Router는 soft navigation 시 `popstate`를 발생시키지 않으므로, `u
 
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useRef } from 'react'
-import { createSukooru } from '@sukooru/core'
+import { createSukooru } from 'sukooru-core'
 
 export function SukooruProvider({ children, options }) {
   const pathname = usePathname()
@@ -1007,7 +1007,7 @@ export function withSukooruRestore<P>(WrappedComponent: React.ComponentType<P>) 
 
 ---
 
-### 8.4 `@sukooru/nuxt`
+### 8.4 `sukooru-nuxt`
 
 ```typescript
 // packages/nuxt/src/module.ts
@@ -1016,7 +1016,7 @@ import { defineNuxtModule, addPlugin, addImports } from '@nuxt/kit'
 
 export default defineNuxtModule({
   meta: {
-    name: '@sukooru/nuxt',
+    name: 'sukooru-nuxt',
     configKey: 'sukooru',
   },
   setup(options, nuxt) {
@@ -1056,7 +1056,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
 ---
 
-### 8.5 `@sukooru/svelte`
+### 8.5 `sukooru-svelte`
 
 Svelte action(`use:`) 문법으로 제공하여 관용적인 사용을 지원합니다.
 
@@ -1082,7 +1082,7 @@ export function createScrollRestoreAction(sukooru: SukooruInstance) {
 <!-- ProductList.svelte -->
 <script>
   import { getContext } from 'svelte'
-  import { createScrollRestoreAction } from '@sukooru/svelte'
+  import { createScrollRestoreAction } from 'sukooru-svelte'
 
   const sukooru = getContext('sukooru')
   const scrollRestore = createScrollRestoreAction(sukooru)
@@ -1210,7 +1210,7 @@ function InfiniteProductList() {
 ### 시나리오 4: Vanilla JavaScript
 
 ```javascript
-import { createSukooru } from '@sukooru/core'
+import { createSukooru } from 'sukooru-core'
 
 const sukooru = createSukooru({ restoreDelay: 50 })
 
@@ -1378,9 +1378,9 @@ pnpm changeset init
 
 | 버전 | 내용 |
 |---|---|
-| `0.1.0` | `@sukooru/core` + `@sukooru/react` MVP |
-| `0.2.0` | `@sukooru/vue`, `@sukooru/next` |
-| `0.3.0` | `@sukooru/nuxt`, `@sukooru/svelte` |
+| `0.1.0` | `sukooru-core` + `sukooru-react` MVP |
+| `0.2.0` | `sukooru-vue`, `sukooru-next` |
+| `0.3.0` | `sukooru-nuxt`, `sukooru-svelte` |
 | `1.0.0` | API 안정화, 문서 완성, 성능 벤치마크 |
 
 ---
@@ -1392,5 +1392,5 @@ pnpm changeset init
 | 저장 빈도 | scroll 이벤트 기반 자동 저장 대신 명시적 `save()` 호출 방식 — 불필요한 직렬화 비용 제거 |
 | 직렬화 비용 | `customState`는 최소 필요 데이터만 직렬화 권장 (대용량 아이템 메타데이터 주의) |
 | 복원 타이밍 | `restoreDelay` + `requestAnimationFrame` 조합으로 레이아웃 스래싱 없이 복원 |
-| 번들 크기 목표 | `@sukooru/core` < 3 KB gzip, 각 어댑터 < 2 KB gzip (코어 포함 기준 < 5 KB) |
+| 번들 크기 목표 | `sukooru-core` < 3 KB gzip, 각 어댑터 < 2 KB gzip (코어 포함 기준 < 5 KB) |
 | Tree-shaking | tsup `treeshake: true`로 사용하지 않는 코드 제거 보장 |

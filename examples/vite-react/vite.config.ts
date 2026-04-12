@@ -6,8 +6,8 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@sukooru/core': fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
-      '@sukooru/react': fileURLToPath(new URL('../../packages/react/src/index.ts', import.meta.url)),
+      'sukooru-core': fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
+      'sukooru-react': fileURLToPath(new URL('../../packages/react/src/index.ts', import.meta.url)),
     },
   },
   server: {

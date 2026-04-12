@@ -1,9 +1,18 @@
 {
-  "name": "@sukooru/react",
+  "name": "sukooru-react",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
   "description": "Sukooru React 어댑터",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jglee96/sukooru.git",
+    "directory": "packages/react"
+  },
+  "homepage": "https://github.com/jglee96/sukooru/tree/main/packages/react#readme",
+  "bugs": {
+    "url": "https://github.com/jglee96/sukooru/issues"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,8 +26,11 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@sukooru/core": "workspace:*"
+    "sukooru-core": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.0.0",

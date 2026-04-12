@@ -1,5 +1,5 @@
 import { inject } from 'vue'
-import type { SukooruInstance } from '@sukooru/core'
+import type { SukooruInstance } from 'sukooru-core'
 import { SUKOORU_KEY } from './plugin'
 
 export const useSukooru = <T = unknown>(): SukooruInstance<T> => {

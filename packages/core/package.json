@@ -1,9 +1,18 @@
 {
-  "name": "@sukooru/core",
+  "name": "sukooru-core",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
   "description": "브라우저 History API와 통합된 스크롤 복원 코어",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jglee96/sukooru.git",
+    "directory": "packages/core"
+  },
+  "homepage": "https://github.com/jglee96/sukooru/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/jglee96/sukooru/issues"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,6 +26,9 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup",
     "test": "vitest run --config vitest.config.ts",

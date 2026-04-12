@@ -1,5 +1,5 @@
 import { getContext, setContext } from 'svelte'
-import type { SukooruInstance } from '@sukooru/core'
+import type { SukooruInstance } from 'sukooru-core'
 
 export const SUKOORU_CONTEXT = Symbol('sukooru')
 

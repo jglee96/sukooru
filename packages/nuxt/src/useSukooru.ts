@@ -1,5 +1,5 @@
 import { useNuxtApp } from '#app'
-import type { SukooruInstance } from '@sukooru/core'
+import type { SukooruInstance } from 'sukooru-core'
 
 export const useSukooru = <T = unknown>(): SukooruInstance<T> => {
   const instance = useNuxtApp().$sukooru

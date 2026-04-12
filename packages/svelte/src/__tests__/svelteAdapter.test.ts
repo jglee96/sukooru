@@ -5,7 +5,7 @@ import type {
   ScrollRestoreStatus,
   ScrollStateHandler,
   SukooruInstance,
-} from '@sukooru/core'
+} from 'sukooru-core'
 import {
   createScrollRestore,
   createSukooruProvider,
@@ -56,7 +56,7 @@ const flush = async () => {
   await Promise.resolve()
 }
 
-describe('@sukooru/svelte', () => {
+describe('sukooru-svelte', () => {
   it('provider가 mount 정리 함수를 연결한다', () => {
     const cleanup = vi.fn()
     const instance = createMockInstance()

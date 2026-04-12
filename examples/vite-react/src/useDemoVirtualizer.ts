@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import type { MutableRefObject, UIEvent } from 'react'
-import type { VirtualizerLike } from '@sukooru/react'
+import type { VirtualizerLike } from 'sukooru-react'
 
 export interface DemoVirtualRow {
   index: number

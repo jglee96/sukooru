@@ -1,5 +1,5 @@
-import { createSukooru } from '@sukooru/core'
-import type { ContainerHandle } from '@sukooru/core'
+import { createSukooru } from 'sukooru-core'
+import type { ContainerHandle } from 'sukooru-core'
 import './style.css'
 
 type Product = {

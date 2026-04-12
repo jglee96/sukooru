@@ -5,7 +5,7 @@ import type {
   ScrollRestoreStatus,
   ScrollStateHandler,
   SukooruInstance,
-} from '@sukooru/core'
+} from 'sukooru-core'
 import { createSukooruPlugin } from '../plugin'
 import { useScrollRestore } from '../useScrollRestore'
 
@@ -52,7 +52,7 @@ const flush = async () => {
   await nextTick()
 }
 
-describe('@sukooru/vue', () => {
+describe('sukooru-vue', () => {
   afterEach(() => {
     document.body.innerHTML = ''
   })

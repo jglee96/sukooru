@@ -6,7 +6,7 @@ import type {
   ScrollRestoreStatus,
   ScrollStateHandler,
   SukooruInstance,
-} from '@sukooru/core'
+} from 'sukooru-core'
 
 export interface ScrollRestoreActionOptions<T = unknown> {
   containerId: string

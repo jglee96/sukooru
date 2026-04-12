@@ -1,10 +1,10 @@
 import { computed, toValue } from 'vue'
 import { useRoute } from '#app'
-import { useScrollRestore as useVueScrollRestore } from '@sukooru/vue'
+import { useScrollRestore as useVueScrollRestore } from 'sukooru-vue'
 import type {
   UseScrollRestoreOptions,
   UseScrollRestoreResult,
-} from '@sukooru/vue'
+} from 'sukooru-vue'
 
 export const useScrollRestore = <T = unknown>(
   options: UseScrollRestoreOptions<T> = {},

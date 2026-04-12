@@ -18,12 +18,12 @@
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
-      "@sukooru/core": ["packages/core/src/index.ts"],
-      "@sukooru/react": ["packages/react/src/index.ts"],
-      "@sukooru/vue": ["packages/vue/src/index.ts"],
-      "@sukooru/next": ["packages/next/src/index.ts"],
-      "@sukooru/nuxt": ["packages/nuxt/src/index.ts"],
-      "@sukooru/svelte": ["packages/svelte/src/index.ts"]
+      "sukooru-core": ["packages/core/src/index.ts"],
+      "sukooru-react": ["packages/react/src/index.ts"],
+      "sukooru-vue": ["packages/vue/src/index.ts"],
+      "sukooru-next": ["packages/next/src/index.ts"],
+      "sukooru-nuxt": ["packages/nuxt/src/index.ts"],
+      "sukooru-svelte": ["packages/svelte/src/index.ts"]
     }
   }
 }

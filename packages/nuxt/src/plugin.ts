@@ -1,8 +1,8 @@
 import { defineNuxtPlugin } from '#app'
-import { createSukooru } from '@sukooru/core'
-import { createSukooruPlugin } from '@sukooru/vue'
+import { createSukooru } from 'sukooru-core'
+import { createSukooruPlugin } from 'sukooru-vue'
 import type { NuxtApp } from '#app'
-import type { SukooruInstance, SukooruOptions } from '@sukooru/core'
+import type { SukooruInstance, SukooruOptions } from 'sukooru-core'
 
 export interface CreateSukooruNuxtPluginOptions<T = unknown>
   extends SukooruOptions<T> {

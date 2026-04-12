@@ -15,25 +15,25 @@ You declare what should be restored. Sukooru handles when to save and when to re
 
 ## What's implemented
 
-- `@sukooru/core`: complete
-- `@sukooru/react`: complete
-- `@sukooru/vue`: complete
-- `@sukooru/next`: complete
-- `@sukooru/nuxt`: complete
-- `@sukooru/svelte`: complete
+- `sukooru-core`: complete
+- `sukooru-react`: complete
+- `sukooru-vue`: complete
+- `sukooru-next`: complete
+- `sukooru-nuxt`: complete
+- `sukooru-svelte`: complete
 
 ## Feature TODO List
 
 ### Done
 
-- [x] `@sukooru/core` basic save/restore API
+- [x] `sukooru-core` basic save/restore API
 - [x] `sessionStorage`-based store and in-memory store for testing
 - [x] TTL and max-entry management
 - [x] `popstate`-based back-navigation restore
 - [x] Current key tracking after `pushState`/`replaceState`
 - [x] Custom `ScrollStateHandler` for state restoration
-- [x] `SukooruProvider` for `@sukooru/react`
-- [x] `useScrollRestore` for `@sukooru/react`
+- [x] `SukooruProvider` for `sukooru-react`
+- [x] `useScrollRestore` for `sukooru-react`
 - [x] Playwright E2E coverage for back-navigation restore
 - [x] Duplicate-save prevention during restoration in React `StrictMode`
 - [x] Real React example for `useVirtualScrollRestore`
@@ -43,10 +43,10 @@ You declare what should be restored. Sukooru handles when to save and when to re
 
 ### Planned
 
-- [x] Actual adapter implementation for `@sukooru/vue`
-- [x] Actual adapter implementation for `@sukooru/next`
-- [x] Actual adapter implementation for `@sukooru/nuxt`
-- [x] Actual adapter implementation for `@sukooru/svelte`
+- [x] Actual adapter implementation for `sukooru-vue`
+- [x] Actual adapter implementation for `sukooru-next`
+- [x] Actual adapter implementation for `sukooru-nuxt`
+- [x] Actual adapter implementation for `sukooru-svelte`
 
 ## Package structure
 
@@ -70,7 +70,7 @@ examples/
 Wrap your app in `SukooruProvider` and attach `useScrollRestore` to any container that needs position tracking. You don't call `save()` or `restore()` directly. The hook takes care of registering the container, restoring on mount, and saving on unmount.
 
 ```tsx
-import { SukooruProvider, useScrollRestore } from '@sukooru/react'
+import { SukooruProvider, useScrollRestore } from 'sukooru-react'
 
 function ProductListPage() {
   const { ref, status } = useScrollRestore({
@@ -101,7 +101,7 @@ Register `createSukooruPlugin` in your Vue app and use `useScrollRestore` inside
 ```ts
 // main.ts
 import { createApp } from 'vue'
-import { createSukooruPlugin } from '@sukooru/vue'
+import { createSukooruPlugin } from 'sukooru-vue'
 import App from './App.vue'
 
 createApp(App).use(createSukooruPlugin()).mount('#app')
@@ -110,7 +110,7 @@ createApp(App).use(createSukooruPlugin()).mount('#app')
 ```vue
 <!-- ProductList.vue -->
 <script setup lang="ts">
-import { useScrollRestore } from '@sukooru/vue'
+import { useScrollRestore } from 'sukooru-vue'
 
 const { el, status } = useScrollRestore({ containerId: 'product-list' })
 </script>
@@ -129,7 +129,7 @@ Place `SukooruProvider` inside a `'use client'` boundary. It automatically deriv
 
 ```tsx
 // app/layout.tsx
-import { SukooruProvider } from '@sukooru/next'
+import { SukooruProvider } from 'sukooru-next'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -145,7 +145,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ```tsx
 // app/products/page.tsx
 'use client'
-import { useScrollRestore } from '@sukooru/next'
+import { useScrollRestore } from 'sukooru-next'
 
 export default function ProductsPage() {
   const { ref, status } = useScrollRestore({ containerId: 'product-list' })
@@ -165,7 +165,7 @@ Register the plugin via `createSukooruNuxtPlugin`. It automatically uses `curren
 
 ```ts
 // plugins/sukooru.client.ts
-import { createSukooruNuxtPlugin } from '@sukooru/nuxt'
+import { createSukooruNuxtPlugin } from 'sukooru-nuxt'
 
 export default createSukooruNuxtPlugin()
 ```
@@ -173,7 +173,7 @@ export default createSukooruNuxtPlugin()
 ```vue
 <!-- pages/products.vue -->
 <script setup lang="ts">
-import { useScrollRestore } from '@sukooru/nuxt'
+import { useScrollRestore } from 'sukooru-nuxt'
 
 const { el, status } = useScrollRestore({ containerId: 'product-list' })
 </script>
@@ -194,7 +194,7 @@ Create the provider in a browser-only module (e.g., a layout component) and use 
 <!-- +layout.svelte -->
 <script lang="ts">
   import { browser } from '$app/environment'
-  import { createSukooruProvider, setSukooruContext } from '@sukooru/svelte'
+  import { createSukooruProvider, setSukooruContext } from 'sukooru-svelte'
   import { page } from '$app/stores'
 
   if (browser) {
@@ -211,7 +211,7 @@ Create the provider in a browser-only module (e.g., a layout component) and use 
 ```svelte
 <!-- ProductList.svelte -->
 <script lang="ts">
-  import { getSukooruContext, createScrollRestore } from '@sukooru/svelte'
+  import { getSukooruContext, createScrollRestore } from 'sukooru-svelte'
 
   const sukooru = getSukooruContext()
   const { action, status } = createScrollRestore(sukooru)
@@ -228,7 +228,7 @@ Create the provider in a browser-only module (e.g., a layout component) and use 
 In a vanilla environment you use the imperative API, but a single instance still owns the store and the restore logic.
 
 ```ts
-import { createSukooru } from '@sukooru/core'
+import { createSukooru } from 'sukooru-core'
 
 const sukooru = createSukooru()
 const container = document.querySelector('#product-list')
@@ -262,7 +262,7 @@ With a virtualized list, saving only `scrollTop` is not always enough because th
 If your list route pushes to a detail route before unmounting, pass an explicit `scrollKey` so the saved entry stays attached to the list URL.
 
 ```tsx
-import { useVirtualScrollRestore } from '@sukooru/react'
+import { useVirtualScrollRestore } from 'sukooru-react'
 
 function VirtualProductList({ rowVirtualizer }) {
   const { ref, status } = useVirtualScrollRestore({
@@ -286,8 +286,8 @@ For a plain scroll container, `scrollTop` and `scrollLeft` are enough. Infinite 
 
 ```tsx
 import { useMemo } from 'react'
-import { useScrollRestore } from '@sukooru/react'
-import type { ScrollStateHandler } from '@sukooru/core'
+import { useScrollRestore } from 'sukooru-react'
+import type { ScrollStateHandler } from 'sukooru-core'
 
 type InfiniteState = {
   loadedPageCount: number
@@ -323,13 +323,13 @@ function ProductList() {
 Each first-party adapter handles key derivation automatically. The patterns below apply when you need to customise the key or integrate a router not covered by a first-party adapter.
 
 - React Router or any client-side router: keep `SukooruProvider` at the app root and derive the key from `pathname + search`. If the list unmounts after a detail `pushState`, pin the list route with an explicit `scrollKey`.
-- Next.js App Router: `@sukooru/next`'s `SukooruProvider` automatically derives the key from `usePathname()` and `useSearchParams()`. For custom scroll containers, pass the list route as `scrollKey`.
-- Vue Router or Nuxt: `@sukooru/vue` and `@sukooru/nuxt` use `currentRoute.value.fullPath` as the default key. Container registration is handled inside composables tied to `onMounted` / `onUnmounted`.
-- SvelteKit: `@sukooru/svelte` uses the Svelte action pattern. Pass a custom `getKey` to `createSukooruProvider` using `$page.url.pathname + $page.url.search`, and restore only after the route component mounts.
+- Next.js App Router: `sukooru-next`'s `SukooruProvider` automatically derives the key from `usePathname()` and `useSearchParams()`. For custom scroll containers, pass the list route as `scrollKey`.
+- Vue Router or Nuxt: `sukooru-vue` and `sukooru-nuxt` use `currentRoute.value.fullPath` as the default key. Container registration is handled inside composables tied to `onMounted` / `onUnmounted`.
+- SvelteKit: `sukooru-svelte` uses the Svelte action pattern. Pass a custom `getKey` to `createSukooruProvider` using `$page.url.pathname + $page.url.search`, and restore only after the route component mounts.
 
 ## Public API
 
-### `@sukooru/core`
+### `sukooru-core`
 
 - `createSukooru(options?)`
 - `sessionStorageAdapter`
@@ -338,7 +338,7 @@ Each first-party adapter handles key derivation automatically. The patterns belo
 - `ScrollStateHandler`
 - `ScrollRestoreStatus`
 
-### `@sukooru/react`
+### `sukooru-react`
 
 - `SukooruProvider`
 - `useSukooru()`
@@ -347,7 +347,7 @@ Each first-party adapter handles key derivation automatically. The patterns belo
 
 `useVirtualScrollRestore()` accepts `containerId`, `virtualizer`, optional `scrollKey`, and `invalidateOnCountChange`.
 
-### `@sukooru/vue`
+### `sukooru-vue`
 
 - `createSukooruPlugin(options?)`
 - `SUKOORU_KEY`
@@ -355,22 +355,22 @@ Each first-party adapter handles key derivation automatically. The patterns belo
 - `useScrollRestore()`
 - `useVirtualScrollRestore()`
 
-### `@sukooru/next`
+### `sukooru-next`
 
 - `SukooruProvider`
-- `useSukooru()` (re-exported from `@sukooru/react`)
+- `useSukooru()` (re-exported from `sukooru-react`)
 - `useScrollRestore()`
 - `useVirtualScrollRestore()`
 - `withSukooruRestore(options?)` — HOC for page/layout-level restore
 
-### `@sukooru/nuxt`
+### `sukooru-nuxt`
 
 - `createSukooruNuxtPlugin(options?)`
 - `useSukooru()`
 - `useScrollRestore()`
 - `useVirtualScrollRestore()`
 
-### `@sukooru/svelte`
+### `sukooru-svelte`
 
 - `createSukooruProvider(options?)`
 - `getSukooruContext()` / `setSukooruContext(instance)`
@@ -391,6 +391,32 @@ pnpm typecheck
 pnpm test
 pnpm test:e2e
 pnpm build
+```
+
+## npm publishing
+
+This repository is configured to publish packages to npm with Changesets and GitHub Actions.
+
+- Public packages: `sukooru-core`, `sukooru-react`, `sukooru-next`, `sukooru-vue`, `sukooru-nuxt`, `sukooru-svelte`
+- GitHub Actions workflow: [.github/workflows/release.yml](.github/workflows/release.yml)
+- npm access: every public package sets `publishConfig.access` to `public`
+
+Release flow:
+
+1. Run `pnpm changeset` when a change should be released.
+2. Run `pnpm release:check` for local verification.
+3. After a changeset lands on `main`, GitHub Actions opens a version PR.
+4. After the version PR is merged, Actions runs `pnpm release` and publishes to npm.
+
+Required GitHub secret:
+
+- `NPM_TOKEN`: npm token with publish permission
+
+For manual publishing, use:
+
+```bash
+pnpm version-packages
+pnpm release
 ```
 
 ## Running the examples

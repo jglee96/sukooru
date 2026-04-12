@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useLayoutEffect, useRef } from 'react'
-import { createSukooru } from '@sukooru/core'
+import { createSukooru } from 'sukooru-core'
 import type { ReactNode } from 'react'
-import type { SukooruInstance, SukooruOptions } from '@sukooru/core'
+import type { SukooruInstance, SukooruOptions } from 'sukooru-core'
 import { SukooruContext } from './SukooruContext'
 
 export interface SukooruProviderProps<T = unknown> {

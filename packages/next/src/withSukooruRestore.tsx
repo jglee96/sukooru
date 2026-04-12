@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { useRouter } from 'next/router'
-import { createSukooru } from '@sukooru/core'
-import { SukooruContext } from '@sukooru/react'
+import { createSukooru } from 'sukooru-core'
+import { SukooruContext } from 'sukooru-react'
 import type { ComponentType } from 'react'
-import type { SukooruInstance, SukooruOptions } from '@sukooru/core'
+import type { SukooruInstance, SukooruOptions } from 'sukooru-core'
 import { RouteKeyContext } from './routeKey'
 
 export interface WithSukooruRestoreOptions<T = unknown> {

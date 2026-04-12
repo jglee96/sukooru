@@ -4,19 +4,31 @@
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jglee96/sukooru.git"
+  },
+  "homepage": "https://github.com/jglee96/sukooru#readme",
+  "bugs": {
+    "url": "https://github.com/jglee96/sukooru/issues"
+  },
   "packageManager": "pnpm@10.6.3",
   "engines": {
     "node": ">=22.12.0"
   },
   "scripts": {
     "build": "turbo run build && node scripts/verify-package-exports.mjs",
-    "dev:example:react": "pnpm --filter @sukooru/example-vite-react dev",
-    "dev:example:vanilla": "pnpm --filter @sukooru/example-vanilla dev",
+    "changeset": "changeset",
+    "dev:example:react": "pnpm --filter sukooru-example-vite-react dev",
+    "dev:example:vanilla": "pnpm --filter sukooru-example-vanilla dev",
+    "release": "pnpm release:check && changeset publish",
+    "release:check": "pnpm typecheck && pnpm test && pnpm build",
     "test": "turbo run test",
     "test:coverage": "turbo run test -- --coverage",
     "test:e2e": "playwright test",
     "typecheck": "turbo run typecheck",
-    "verify:exports": "node scripts/verify-package-exports.mjs"
+    "verify:exports": "node scripts/verify-package-exports.mjs",
+    "version-packages": "changeset version"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.6",

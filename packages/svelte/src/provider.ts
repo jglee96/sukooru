@@ -1,5 +1,5 @@
-import { createSukooru } from '@sukooru/core'
-import type { SukooruInstance, SukooruOptions } from '@sukooru/core'
+import { createSukooru } from 'sukooru-core'
+import type { SukooruInstance, SukooruOptions } from 'sukooru-core'
 
 export interface CreateSukooruProviderOptions<T = unknown> extends SukooruOptions<T> {
   instance?: SukooruInstance<T>

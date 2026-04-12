@@ -1,5 +1,5 @@
 import type { Action } from 'svelte/action'
-import type { SukooruInstance } from '@sukooru/core'
+import type { SukooruInstance } from 'sukooru-core'
 import {
   createScrollRestore,
   type ScrollRestoreActionOptions,

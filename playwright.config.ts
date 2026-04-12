@@ -20,7 +20,7 @@ export default defineConfig({
     },
   },
   webServer: {
-    command: `pnpm --filter @sukooru/example-vite-react dev --host ${host} --port ${port}`,
+    command: `pnpm --filter sukooru-example-vite-react dev --host ${host} --port ${port}`,
     reuseExistingServer: true,
     url: `${baseURL}/products`,
   },

@@ -1,5 +1,5 @@
-import { useVirtualScrollRestore as useReactVirtualScrollRestore } from '@sukooru/react'
-import type { UseVirtualScrollRestoreOptions } from '@sukooru/react'
+import { useVirtualScrollRestore as useReactVirtualScrollRestore } from 'sukooru-react'
+import type { UseVirtualScrollRestoreOptions } from 'sukooru-react'
 import { useRouteKey } from './routeKey'
 
 export const useVirtualScrollRestore = (

@@ -1,9 +1,18 @@
 {
-  "name": "@sukooru/next",
+  "name": "sukooru-next",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
   "description": "Sukooru Next.js 어댑터",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jglee96/sukooru.git",
+    "directory": "packages/next"
+  },
+  "homepage": "https://github.com/jglee96/sukooru/tree/main/packages/next#readme",
+  "bugs": {
+    "url": "https://github.com/jglee96/sukooru/issues"
+  },
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -17,9 +26,12 @@
   "files": [
     "dist"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
-    "@sukooru/core": "workspace:*",
-    "@sukooru/react": "workspace:*"
+    "sukooru-core": "workspace:*",
+    "sukooru-react": "workspace:*"
   },
   "peerDependencies": {
     "next": ">=15.0.0",

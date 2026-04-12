@@ -4,7 +4,7 @@ import type {
   ContainerHandle,
   ScrollRestoreStatus,
   SukooruInstance,
-} from '@sukooru/core'
+} from 'sukooru-core'
 
 const navigationState = vi.hoisted(() => ({
   pathname: '/products',
@@ -28,7 +28,7 @@ vi.mock('next/router', () => ({
   }),
 }))
 
-import { useSukooru } from '@sukooru/react'
+import { useSukooru } from 'sukooru-react'
 import { SukooruProvider } from '../SukooruProvider'
 import { useScrollRestore } from '../useScrollRestore'
 import { useVirtualScrollRestore } from '../useVirtualScrollRestore'
@@ -107,7 +107,7 @@ const CurrentKeyConsumer = () => {
   return <div data-testid="current-key">{sukooru.currentKey}</div>
 }
 
-describe('@sukooru/next', () => {
+describe('sukooru-next', () => {
   afterEach(() => {
     navigationState.pathname = '/products'
     navigationState.search = 'page=2'
