@@ -1,0 +1,18 @@
+:root {
+  color: #1a1a1a;
+  background: #f7f1e8;
+  font-family: "Pretendard Variable", "Apple SD Gothic Neo", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button {
+  font: inherit;
+}
+
