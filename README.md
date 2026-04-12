@@ -393,41 +393,6 @@ pnpm test:e2e
 pnpm build
 ```
 
-## npm 배포
-
-이 저장소는 Changesets와 GitHub Actions 기반으로 npm 배포를 하도록 설정되어 있습니다.
-
-- 공개 패키지: `@sukooru/core`, `@sukooru/react`, `@sukooru/next`, `@sukooru/vue`, `@sukooru/nuxt`, `@sukooru/svelte`
-- GitHub Actions 워크플로: [.github/workflows/release.yml](.github/workflows/release.yml)
-- npm access: 각 공개 패키지의 `publishConfig.access`는 `public`으로 설정되어 있습니다.
-
-릴리스 준비 순서:
-
-1. 변경이 사용자 영향이 있으면 `pnpm changeset`으로 changeset 파일을 만듭니다.
-2. 로컬 검증은 `pnpm release:check`로 수행합니다.
-3. 메인 브랜치에 changeset이 머지되면 GitHub Actions가 버전 PR을 생성합니다.
-4. 버전 PR이 머지되면 Actions가 `pnpm release`를 실행해 npm publish를 수행합니다.
-
-필수 GitHub Secret:
-
-- `NPM_TOKEN`: npm publish 권한이 있는 토큰
-
-첫 배포 주의사항:
-
-- `@sukooru/core` 같은 scoped 패키지는 첫 publish 시 `public` 접근 수준이 필요하며, 이 저장소는 각 패키지의 `publishConfig.access`를 이미 `public`으로 설정해 둡니다.
-- npm은 2025년 11월부터 granular token만 지원합니다. 따라서 `NPM_TOKEN`에는 `sukooru` organization 패키지에 대한 `read and write` 권한과 `Bypass 2FA`가 모두 필요합니다.
-- 이 권한이 없으면 GitHub Actions에서 첫 publish가 `E404 Not Found - PUT https://registry.npmjs.org/<package>`처럼 다소 오해하기 쉬운 에러로 실패할 수 있습니다.
-- 새 패키지의 첫 배포는 로컬에서 `npm login` 후 `pnpm release`로 한 번 올린 다음, npm 패키지 설정에서 trusted publisher를 연결하는 흐름을 권장합니다.
-- 이후에는 GitHub Actions OIDC trusted publishing을 쓰면 `NPM_TOKEN` 없이도 publish할 수 있습니다.
-
-수동 배포가 필요하면 아래 명령을 사용할 수 있습니다.
-
-```bash
-pnpm release:check
-pnpm version-packages
-pnpm release
-```
-
 ## 예제 실행
 
 ### React 예제

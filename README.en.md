@@ -393,41 +393,6 @@ pnpm test:e2e
 pnpm build
 ```
 
-## npm publishing
-
-This repository is configured to publish packages to npm with Changesets and GitHub Actions.
-
-- Public packages: `@sukooru/core`, `@sukooru/react`, `@sukooru/next`, `@sukooru/vue`, `@sukooru/nuxt`, `@sukooru/svelte`
-- GitHub Actions workflow: [.github/workflows/release.yml](.github/workflows/release.yml)
-- npm access: every public package sets `publishConfig.access` to `public`
-
-Release flow:
-
-1. Run `pnpm changeset` when a change should be released.
-2. Run `pnpm release:check` for local verification.
-3. After a changeset lands on `main`, GitHub Actions opens a version PR.
-4. After the version PR is merged, Actions runs `pnpm release` and publishes to npm.
-
-Required GitHub secret:
-
-- `NPM_TOKEN`: npm token with publish permission
-
-Initial publish notes:
-
-- Scoped packages such as `@sukooru/core` need `public` access on the initial publish, and this repository already sets `publishConfig.access` to `public` for each package.
-- Since November 2025, npm only supports granular tokens. That means `NPM_TOKEN` needs `read and write` access for packages in the `sukooru` organization plus `Bypass 2FA`.
-- If that access is missing, the first CI publish can fail with a misleading `E404 Not Found - PUT https://registry.npmjs.org/<package>` error.
-- For brand-new packages, the safer flow is to publish once locally with `npm login` and `pnpm release`, then configure npm trusted publishing for the package.
-- After that, GitHub Actions can publish through OIDC trusted publishing without an `NPM_TOKEN`.
-
-For manual publishing, use:
-
-```bash
-pnpm release:check
-pnpm version-packages
-pnpm release
-```
-
 ## Running the examples
 
 ### React example
