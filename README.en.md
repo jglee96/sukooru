@@ -412,6 +412,14 @@ Required GitHub secret:
 
 - `NPM_TOKEN`: npm token with publish permission
 
+Initial publish notes:
+
+- Unscoped packages such as `sukooru-core` are always public on npm.
+- Since November 2025, npm only supports granular tokens. That means `NPM_TOKEN` needs both `read and write` access for each package and `Bypass 2FA`.
+- If that access is missing, the first CI publish can fail with a misleading `E404 Not Found - PUT https://registry.npmjs.org/<package>` error.
+- For brand-new packages, the safer flow is to publish once locally with `npm login` and `pnpm release`, then configure npm trusted publishing for the package.
+- After that, GitHub Actions can publish through OIDC trusted publishing without an `NPM_TOKEN`.
+
 For manual publishing, use:
 
 ```bash

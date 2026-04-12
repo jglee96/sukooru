@@ -412,6 +412,14 @@ pnpm build
 
 - `NPM_TOKEN`: npm publish 권한이 있는 토큰
 
+첫 배포 주의사항:
+
+- `sukooru-core` 같은 unscoped 패키지는 npm에서 항상 public입니다.
+- npm은 2025년 11월부터 granular token만 지원합니다. 따라서 `NPM_TOKEN`에는 각 패키지에 대한 `read and write` 권한과 `Bypass 2FA`가 모두 필요합니다.
+- 이 권한이 없으면 GitHub Actions에서 첫 publish가 `E404 Not Found - PUT https://registry.npmjs.org/<package>`처럼 다소 오해하기 쉬운 에러로 실패할 수 있습니다.
+- 새 패키지의 첫 배포는 로컬에서 `npm login` 후 `pnpm release`로 한 번 올린 다음, npm 패키지 설정에서 trusted publisher를 연결하는 흐름을 권장합니다.
+- 이후에는 GitHub Actions OIDC trusted publishing을 쓰면 `NPM_TOKEN` 없이도 publish할 수 있습니다.
+
 수동 배포가 필요하면 아래 명령을 사용할 수 있습니다.
 
 ```bash
