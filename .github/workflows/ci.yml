@@ -18,8 +18,11 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare "$(node -p "require('./package.json').packageManager")" --activate
+          pnpm --version
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
