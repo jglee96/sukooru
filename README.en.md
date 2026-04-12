@@ -14,8 +14,8 @@ You declare what should be restored. Sukooru handles when to save and when to re
 
 - `@sukooru/core`: complete
 - `@sukooru/react`: complete
-- `@sukooru/vue`: package skeleton only
-- `@sukooru/next`: package skeleton only
+- `@sukooru/vue`: complete
+- `@sukooru/next`: complete
 - `@sukooru/nuxt`: package skeleton only
 - `@sukooru/svelte`: package skeleton only
 
@@ -40,8 +40,8 @@ You declare what should be restored. Sukooru handles when to save and when to re
 
 ### Planned
 
-- [ ] Actual adapter implementation for `@sukooru/vue`
-- [ ] Actual adapter implementation for `@sukooru/next`
+- [x] Actual adapter implementation for `@sukooru/vue`
+- [x] Actual adapter implementation for `@sukooru/next`
 - [ ] Actual adapter implementation for `@sukooru/nuxt`
 - [ ] Actual adapter implementation for `@sukooru/svelte`
 

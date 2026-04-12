@@ -14,8 +14,8 @@
 
 - `@sukooru/core`: 구현 완료
 - `@sukooru/react`: 구현 완료
-- `@sukooru/vue`: 패키지 골격만 제공
-- `@sukooru/next`: 패키지 골격만 제공
+- `@sukooru/vue`: 구현 완료
+- `@sukooru/next`: 구현 완료
 - `@sukooru/nuxt`: 패키지 골격만 제공
 - `@sukooru/svelte`: 패키지 골격만 제공
 
@@ -40,8 +40,8 @@
 
 ### 해야 할 기능
 
-- [ ] `@sukooru/vue` 실제 어댑터 구현
-- [ ] `@sukooru/next` 실제 어댑터 구현
+- [x] `@sukooru/vue` 실제 어댑터 구현
+- [x] `@sukooru/next` 실제 어댑터 구현
 - [ ] `@sukooru/nuxt` 실제 어댑터 구현
 - [ ] `@sukooru/svelte` 실제 어댑터 구현
 
