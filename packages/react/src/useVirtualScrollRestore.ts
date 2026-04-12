@@ -23,12 +23,14 @@ export interface VirtualScrollState {
 
 export interface UseVirtualScrollRestoreOptions {
   containerId: string
+  scrollKey?: string
   virtualizer: VirtualizerLike
   invalidateOnCountChange?: boolean
 }
 
 export const useVirtualScrollRestore = ({
   containerId,
+  scrollKey,
   virtualizer,
   invalidateOnCountChange = true,
 }: UseVirtualScrollRestoreOptions) => {
@@ -55,7 +57,7 @@ export const useVirtualScrollRestore = ({
 
   return useScrollRestore({
     containerId,
+    scrollKey,
     stateHandler,
   })
 }
-

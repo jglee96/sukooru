@@ -10,6 +10,7 @@ import type {
 import { SukooruProvider } from '../SukooruProvider'
 import { useScrollRestore } from '../useScrollRestore'
 import { useSukooru } from '../useSukooru'
+import { useVirtualScrollRestore } from '../useVirtualScrollRestore'
 
 const createHandle = (): ContainerHandle => ({
   unregister: vi.fn(),
@@ -65,6 +66,35 @@ const HookConsumer = ({
   })
 
   return <div ref={ref as unknown as React.Ref<HTMLDivElement>} data-status={status} data-testid="container" />
+}
+
+const VirtualHookConsumer = ({
+  scrollKey,
+}: {
+  scrollKey?: string
+}) => {
+  const virtualizer = {
+    scrollOffset: 320,
+    options: {
+      count: 24,
+    },
+    getVirtualItems: () => [{ index: 4 }],
+    scrollToOffset: vi.fn(),
+  }
+
+  const { ref, status } = useVirtualScrollRestore({
+    containerId: 'virtual-list',
+    scrollKey,
+    virtualizer,
+  })
+
+  return (
+    <div
+      ref={ref as unknown as React.Ref<HTMLDivElement>}
+      data-status={status}
+      data-testid="virtual-container"
+    />
+  )
 }
 
 describe('@sukooru/react', () => {
@@ -178,5 +208,29 @@ describe('@sukooru/react', () => {
     })
 
     expect(instance.save).not.toHaveBeenCalled()
+  })
+
+  it('virtual scroll 훅도 scrollKey를 save/restore에 그대로 전달한다', async () => {
+    const instance = createMockInstance()
+    const containerHandle = createHandle()
+    instance.registerContainer.mockReturnValue(containerHandle)
+    instance.restore.mockResolvedValue('restored' satisfies ScrollRestoreStatus)
+
+    const view = render(
+      <SukooruProvider instance={instance}>
+        <VirtualHookConsumer scrollKey="/virtual" />
+      </SukooruProvider>,
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('virtual-container')).toHaveAttribute('data-status', 'restored')
+    })
+
+    expect(instance.restore).toHaveBeenCalledWith('/virtual')
+
+    view.unmount()
+
+    expect(instance.save).toHaveBeenCalledWith('/virtual')
+    expect(containerHandle.unregister).toHaveBeenCalledTimes(1)
   })
 })
