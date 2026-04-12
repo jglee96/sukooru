@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { createSukooru } from '@sukooru/core'
 import { SukooruContext } from '@sukooru/react'
@@ -13,6 +13,8 @@ export interface SukooruProviderProps<T = unknown> {
   options?: SukooruOptions<T>
   instance?: SukooruInstance<T>
 }
+
+const useSafeLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
 export const SukooruProvider = <T,>({
   children,
@@ -33,6 +35,11 @@ export const SukooruProvider = <T,>({
       getKey: () => routeKeyRef.current,
     })
   }
+
+  useSafeLayoutEffect(() => {
+    const cleanup = instanceRef.current?.mount()
+    return cleanup
+  }, [])
 
   return (
     <SukooruContext.Provider value={instanceRef.current}>

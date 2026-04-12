@@ -39,6 +39,7 @@ const createHandle = (): ContainerHandle => ({
 })
 
 const createMockInstance = (): SukooruInstance<unknown> & {
+  mount: ReturnType<typeof vi.fn>
   restore: ReturnType<typeof vi.fn>
   save: ReturnType<typeof vi.fn>
   registerContainer: ReturnType<typeof vi.fn>
@@ -62,6 +63,7 @@ const createMockInstance = (): SukooruInstance<unknown> & {
 
   return {
     ...instance,
+    mount: vi.fn(instance.mount),
     restore: vi.fn(instance.restore),
     save: vi.fn(instance.save),
     registerContainer: vi.fn(instance.registerContainer),
@@ -134,6 +136,24 @@ describe('@sukooru/next', () => {
     expect(screen.getByTestId('current-key').textContent).toBe('/products/42?ref=modal')
   })
 
+  it('App Router provider가 mount 정리 함수를 연결한다', () => {
+    const cleanup = vi.fn()
+    const instance = createMockInstance()
+    instance.mount.mockReturnValue(cleanup)
+
+    const view = render(
+      <SukooruProvider instance={instance}>
+        <CurrentKeyConsumer />
+      </SukooruProvider>,
+    )
+
+    expect(instance.mount).toHaveBeenCalledTimes(1)
+
+    view.unmount()
+
+    expect(cleanup).toHaveBeenCalledTimes(1)
+  })
+
   it('App Router 훅이 route key를 scrollKey 기본값으로 사용한다', async () => {
     const instance = createMockInstance()
     const containerHandle = createHandle()
@@ -189,6 +209,21 @@ describe('@sukooru/next', () => {
     })
 
     expect(instance.save).toHaveBeenCalledWith('/catalog?page=3')
+  })
+
+  it('Pages Router HOC도 mount 정리 함수를 연결한다', () => {
+    const cleanup = vi.fn()
+    const instance = createMockInstance()
+    instance.mount.mockReturnValue(cleanup)
+    const WrappedConsumer = withSukooruRestore(CurrentKeyConsumer, { instance })
+
+    const view = render(<WrappedConsumer />)
+
+    expect(instance.mount).toHaveBeenCalledTimes(1)
+
+    view.unmount()
+
+    expect(cleanup).toHaveBeenCalledTimes(1)
   })
 
   it('virtual scroll 훅도 route key를 기본 scrollKey로 전달한다', async () => {
