@@ -21,12 +21,25 @@ if (!app) {
 }
 
 const sukooru = createSukooru({
+  getKey: () => window.location.pathname,
   restoreDelay: 16,
   waitForDomReady: true,
 })
 
 const productListKey = '/products'
 let listHandle: ContainerHandle | null = null
+
+const replaceRoute = (path: string): void => {
+  window.history.replaceState({ demoPath: path }, '', path)
+}
+
+const pushRoute = (path: string): void => {
+  window.history.pushState({ demoPath: path }, '', path)
+}
+
+const findProduct = (productId: number): Product | null => {
+  return products.find((product) => product.id === productId) ?? null
+}
 
 const unregisterList = (): void => {
   listHandle?.unregister()
@@ -57,6 +70,12 @@ const renderDetail = (product: Product): void => {
   `
 
   app.querySelector<HTMLButtonElement>('#back-button')?.addEventListener('click', () => {
+    if (window.location.pathname !== productListKey && window.history.length > 1) {
+      window.history.back()
+      return
+    }
+
+    replaceRoute(productListKey)
     void renderList()
   })
 }
@@ -113,11 +132,41 @@ const renderList = async (): Promise<void> => {
       }
 
       await sukooru.save(productListKey)
+      pushRoute(`/products/${product.id}`)
       renderDetail(product)
     })
   })
 
   await sukooru.restore(productListKey)
+}
+
+const renderCurrentRoute = async (): Promise<void> => {
+  const pathname = window.location.pathname
+
+  if (pathname === '/' || pathname === productListKey) {
+    if (pathname === '/') {
+      replaceRoute(productListKey)
+    }
+
+    await renderList()
+    return
+  }
+
+  const detailMatch = pathname.match(/^\/products\/(\d+)$/)
+  if (!detailMatch) {
+    replaceRoute(productListKey)
+    await renderList()
+    return
+  }
+
+  const product = findProduct(Number(detailMatch[1]))
+  if (!product) {
+    replaceRoute(productListKey)
+    await renderList()
+    return
+  }
+
+  renderDetail(product)
 }
 
 window.addEventListener('beforeunload', () => {
@@ -126,4 +175,10 @@ window.addEventListener('beforeunload', () => {
   }
 })
 
-void renderList()
+window.addEventListener('popstate', () => {
+  void renderCurrentRoute()
+})
+
+window.history.scrollRestoration = 'manual'
+
+void renderCurrentRoute()

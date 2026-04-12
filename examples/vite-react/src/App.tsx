@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { SukooruProvider, useScrollRestore } from '@sukooru/react'
 
 type Product = {
@@ -7,6 +7,10 @@ type Product = {
   price: string
   summary: string
 }
+
+type DemoRoute =
+  | { kind: 'list' }
+  | { kind: 'detail'; productId: number }
 
 const products: Product[] = Array.from({ length: 48 }, (_, index) => ({
   id: index + 1,
@@ -30,14 +34,42 @@ const headerStyle = {
   borderBottom: '1px solid rgba(26, 26, 26, 0.08)',
 }
 
+const listPath = '/products'
+
+const findProduct = (productId: number): Product | null => {
+  return products.find((product) => product.id === productId) ?? null
+}
+
+const parseRoute = (pathname: string): DemoRoute => {
+  if (pathname === listPath || pathname === '/') {
+    return { kind: 'list' }
+  }
+
+  const detailMatch = pathname.match(/^\/products\/(\d+)$/)
+  if (!detailMatch) {
+    return { kind: 'list' }
+  }
+
+  const productId = Number(detailMatch[1])
+  return findProduct(productId) ? { kind: 'detail', productId } : { kind: 'list' }
+}
+
+const replaceRoute = (path: string): void => {
+  window.history.replaceState({ demoPath: path }, '', path)
+}
+
+const pushRoute = (path: string): void => {
+  window.history.pushState({ demoPath: path }, '', path)
+}
+
 const ProductListPage = ({
   onSelect,
 }: {
   onSelect: (product: Product) => void
 }) => {
-  const { ref, status } = useScrollRestore({
-    containerId: 'product-list',
-    scrollKey: '/products',
+  const { status } = useScrollRestore({
+    containerId: 'window',
+    scrollKey: listPath,
   })
 
   return (
@@ -56,11 +88,8 @@ const ProductListPage = ({
       </header>
 
       <main
-        ref={ref}
         style={{
-          height: 'calc(100vh - 180px)',
-          overflowY: 'auto',
-          padding: '24px 28px 40px',
+          padding: '24px 28px 56px',
         }}
       >
         <ul
@@ -107,6 +136,10 @@ const ProductDetailPage = ({
   product: Product
   onBack: () => void
 }) => {
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [])
+
   return (
     <section style={shellStyle}>
       <div style={{ maxWidth: '840px', margin: '0 auto', padding: '56px 28px' }}>
@@ -146,20 +179,69 @@ const ProductDetailPage = ({
   )
 }
 
-export const App = () => {
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+const ExampleRouter = () => {
+  const [route, setRoute] = useState<DemoRoute>(() => parseRoute(window.location.pathname))
 
+  useEffect(() => {
+    const previousMode = window.history.scrollRestoration
+    window.history.scrollRestoration = 'manual'
+
+    if (window.location.pathname === '/') {
+      replaceRoute(listPath)
+      setRoute({ kind: 'list' })
+    }
+
+    const handlePopState = () => {
+      setRoute(parseRoute(window.location.pathname))
+    }
+
+    window.addEventListener('popstate', handlePopState)
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState)
+      window.history.scrollRestoration = previousMode
+    }
+  }, [])
+
+  const selectedProduct = useMemo(() => {
+    if (route.kind !== 'detail') {
+      return null
+    }
+
+    return findProduct(route.productId)
+  }, [route])
+
+  const handleSelect = (product: Product) => {
+    pushRoute(`/products/${product.id}`)
+    setRoute({ kind: 'detail', productId: product.id })
+  }
+
+  const handleBack = () => {
+    if (window.location.pathname !== listPath && window.history.length > 1) {
+      window.history.back()
+      return
+    }
+
+    replaceRoute(listPath)
+    setRoute({ kind: 'list' })
+  }
+
+  if (!selectedProduct) {
+    return <ProductListPage onSelect={handleSelect} />
+  }
+
+  return <ProductDetailPage product={selectedProduct} onBack={handleBack} />
+}
+
+export const App = () => {
   return (
-    <SukooruProvider>
-      {selectedProduct ? (
-        <ProductDetailPage
-          product={selectedProduct}
-          onBack={() => setSelectedProduct(null)}
-        />
-      ) : (
-        <ProductListPage onSelect={setSelectedProduct} />
-      )}
+    <SukooruProvider
+      options={{
+        getKey: () => window.location.pathname,
+        restoreDelay: 16,
+      }}
+    >
+      <ExampleRouter />
     </SukooruProvider>
   )
 }
-
