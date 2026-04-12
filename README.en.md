@@ -415,6 +415,7 @@ Required GitHub secret:
 For manual publishing, use:
 
 ```bash
+pnpm release:check
 pnpm version-packages
 pnpm release
 ```

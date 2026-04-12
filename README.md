@@ -415,6 +415,7 @@ pnpm build
 수동 배포가 필요하면 아래 명령을 사용할 수 있습니다.
 
 ```bash
+pnpm release:check
 pnpm version-packages
 pnpm release
 ```

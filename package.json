@@ -21,7 +21,7 @@
     "changeset": "changeset",
     "dev:example:react": "pnpm --filter sukooru-example-vite-react dev",
     "dev:example:vanilla": "pnpm --filter sukooru-example-vanilla dev",
-    "release": "pnpm release:check && changeset publish",
+    "release": "pnpm build && changeset publish",
     "release:check": "pnpm typecheck && pnpm test && pnpm build",
     "test": "turbo run test",
     "test:coverage": "turbo run test -- --coverage",
