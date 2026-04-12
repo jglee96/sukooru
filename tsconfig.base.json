@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["DOM", "DOM.Iterable", "ES2020"],
+    "strict": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noUncheckedIndexedAccess": true,
+    "resolveJsonModule": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@sukooru/core": ["packages/core/src/index.ts"],
+      "@sukooru/react": ["packages/react/src/index.ts"],
+      "@sukooru/vue": ["packages/vue/src/index.ts"],
+      "@sukooru/next": ["packages/next/src/index.ts"],
+      "@sukooru/nuxt": ["packages/nuxt/src/index.ts"],
+      "@sukooru/svelte": ["packages/svelte/src/index.ts"]
+    }
+  }
+}
+
