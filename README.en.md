@@ -2,6 +2,9 @@
 
 # Sukooru
 
+[![CI](https://github.com/jglee96/sukooru/actions/workflows/ci.yml/badge.svg)](https://github.com/jglee96/sukooru/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jglee96/sukooru/graph/badge.svg)](https://codecov.io/gh/jglee96/sukooru)
+
 If you've ever clicked back to a page only to land at the top instead of where you left off, that's the problem Sukooru fixes. It connects to the browser History API to remember scroll positions and restore them when a user navigates back. It has no dependency on any specific framework.
 
 ## Core idea

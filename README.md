@@ -2,6 +2,9 @@
 
 # Sukooru
 
+[![CI](https://github.com/jglee96/sukooru/actions/workflows/ci.yml/badge.svg)](https://github.com/jglee96/sukooru/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jglee96/sukooru/graph/badge.svg)](https://codecov.io/gh/jglee96/sukooru)
+
 페이지를 이동할 때 스크롤 위치가 초기화되는 문제를 겪어봤다면, Sukooru가 그 문제를 해결합니다. 브라우저 History API와 연동해서 스크롤 위치를 기억하고, 사용자가 돌아왔을 때 그대로 복원합니다. 특정 프레임워크에 의존하지 않습니다.
 
 ## 핵심 개념
