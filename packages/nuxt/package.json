@@ -2,7 +2,7 @@
   "name": "@sukooru/nuxt",
   "version": "0.1.0",
   "type": "module",
-  "description": "Sukooru Nuxt 어댑터 골격",
+  "description": "Sukooru Nuxt 어댑터",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -16,8 +16,20 @@
   "files": [
     "dist"
   ],
+  "dependencies": {
+    "@sukooru/core": "workspace:*",
+    "@sukooru/vue": "workspace:*"
+  },
+  "peerDependencies": {
+    "nuxt": ">=3.0.0",
+    "vue": "^3.3.0"
+  },
   "scripts": {
     "build": "tsup",
+    "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "vue": "^3.5.13"
   }
 }
