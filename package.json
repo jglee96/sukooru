@@ -8,13 +8,14 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "build": "turbo run build",
+    "build": "turbo run build && node scripts/verify-package-exports.mjs",
     "dev:example:react": "pnpm --filter @sukooru/example-vite-react dev",
     "dev:example:vanilla": "pnpm --filter @sukooru/example-vanilla dev",
     "test": "turbo run test",
     "test:coverage": "turbo run test -- --coverage",
     "test:e2e": "playwright test",
-    "typecheck": "turbo run typecheck"
+    "typecheck": "turbo run typecheck",
+    "verify:exports": "node scripts/verify-package-exports.mjs"
   },
   "devDependencies": {
     "@changesets/cli": "^2.29.6",
