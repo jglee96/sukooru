@@ -31,19 +31,19 @@ You declare what should be restored. Sukooru handles when to save and when to re
 - [x] Custom `ScrollStateHandler` for state restoration
 - [x] `SukooruProvider` for `@sukooru/react`
 - [x] `useScrollRestore` for `@sukooru/react`
+- [x] Playwright E2E coverage for back-navigation restore
 - [x] Duplicate-save prevention during restoration in React `StrictMode`
+- [x] Real React example for `useVirtualScrollRestore`
+- [x] Infinite scroll example and docs
+- [x] Router integration guides
 - [x] React and Vanilla runnable examples
 
 ### Planned
 
-- [ ] E2E tests that pin back-navigation restore behavior
-- [ ] Real usage example for `useVirtualScrollRestore`
-- [ ] Infinite scroll example and documentation
 - [ ] Actual adapter implementation for `@sukooru/vue`
 - [ ] Actual adapter implementation for `@sukooru/next`
 - [ ] Actual adapter implementation for `@sukooru/nuxt`
 - [ ] Actual adapter implementation for `@sukooru/svelte`
-- [ ] Router integration guides
 
 ## Package structure
 
@@ -115,40 +115,85 @@ if (container) {
 }
 ```
 
-## Custom state restoration
+## React example modes
 
-For a normal scroll container, `scrollTop` and `scrollLeft` are all you need. For virtual scroll or infinite scroll, that's not enough. Pass a `ScrollStateHandler` to define exactly what additional state to capture and replay.
+The React example app now demonstrates three restore patterns from the same dev server.
 
-Sukooru restores the custom state first, then applies the scroll position. That order matches the infinite scroll pattern where data has to be loaded before the position can be set.
+- `/products`: full window scroll restoration
+- `/virtual`: virtual-list restoration via `useVirtualScrollRestore`
+- `/infinite`: infinite-scroll restoration via `useScrollRestore` + `ScrollStateHandler`
+
+## Virtual scroll restoration
+
+With a virtualized list, saving only `scrollTop` is not always enough because the DOM only contains the currently visible rows. `useVirtualScrollRestore` restores both the virtualizer offset and the visible range metadata.
+
+If your list route pushes to a detail route before unmounting, pass an explicit `scrollKey` so the saved entry stays attached to the list URL.
 
 ```tsx
+import { useVirtualScrollRestore } from '@sukooru/react'
+
+function VirtualProductList({ rowVirtualizer }) {
+  const { ref, status } = useVirtualScrollRestore({
+    containerId: 'virtual-list',
+    scrollKey: '/products',
+    virtualizer: rowVirtualizer,
+  })
+
+  return (
+    <div ref={ref} style={{ height: '80vh', overflowY: 'auto' }}>
+      {status === 'restoring' ? 'Restoring...' : null}
+      {/* virtual rows */}
+    </div>
+  )
+}
+```
+
+## Infinite scroll restoration
+
+For a plain scroll container, `scrollTop` and `scrollLeft` are enough. Infinite scroll needs more than that. Sukooru restores custom state first and then applies the scroll position, which fits the pattern where data must exist before the final offset can be applied.
+
+```tsx
+import { useMemo } from 'react'
 import { useScrollRestore } from '@sukooru/react'
 import type { ScrollStateHandler } from '@sukooru/core'
 
 type InfiniteState = {
-  pageParams: string[]
+  loadedPageCount: number
 }
 
 function ProductList() {
-  const stateHandler: ScrollStateHandler<InfiniteState> = {
-    captureState: () => ({
-      pageParams: ['cursor-1', 'cursor-2'],
+  const stateHandler = useMemo<ScrollStateHandler<InfiniteState>>(
+    () => ({
+      captureState: () => ({
+        loadedPageCount: pageCountRef.current,
+      }),
+      applyState: async ({ loadedPageCount }) => {
+        while (pageCountRef.current < loadedPageCount) {
+          await loadNextPage()
+        }
+      },
     }),
-    applyState: async ({ pageParams }) => {
-      for (const pageParam of pageParams.slice(1)) {
-        await fetch(`/api/products?cursor=${pageParam}`)
-      }
-    },
-  }
+    [],
+  )
 
   const { ref } = useScrollRestore({
     containerId: 'infinite-list',
+    scrollKey: '/products',
     stateHandler,
   })
 
   return <div ref={ref} />
 }
 ```
+
+## Router integration guide
+
+These are recommended integration patterns for frameworks that do not yet have a finished first-party adapter in this repo. Right now only `@sukooru/react` is fully implemented.
+
+- React Router or any client-side router: keep `SukooruProvider` at the app root and derive the key from `pathname + search`. If the list unmounts after a detail `pushState`, pin the list route with an explicit `scrollKey`.
+- Next.js App Router: place `SukooruProvider` inside a `'use client'` boundary and derive keys from `usePathname()` (plus search params if needed). For custom scroll containers, pass the list route as `scrollKey`.
+- Vue Router or Nuxt: use `currentRoute.value.fullPath` as the key and keep container registration inside a composable tied to `onMounted` / `onUnmounted`.
+- SvelteKit: create the Sukooru instance in a browser-only module, use `$page.url.pathname + $page.url.search` as the key, and restore only after the route component mounts.
 
 ## Public API
 
@@ -168,6 +213,8 @@ function ProductList() {
 - `useScrollRestore()`
 - `useVirtualScrollRestore()`
 
+`useVirtualScrollRestore()` accepts `containerId`, `virtualizer`, optional `scrollKey`, and `invalidateOnCountChange`.
+
 ## Development
 
 Node 22 or later is recommended. A `.nvmrc` is included in this repo.
@@ -177,6 +224,7 @@ nvm use
 pnpm install
 pnpm typecheck
 pnpm test
+pnpm test:e2e
 pnpm build
 ```
 
@@ -190,14 +238,14 @@ pnpm install
 pnpm dev:example:react
 ```
 
-Open `http://127.0.0.1:4173` in a browser.
+Open `http://127.0.0.1:4173` in a browser. The example app includes `/products`, `/virtual`, and `/infinite`.
 
 Steps to verify:
 
-1. Scroll down far enough in the list.
-2. Click any product to go to the detail page.
-3. Click "Back to list".
-4. Confirm the previous scroll position is restored.
+1. In `/products`, scroll the full window and return from a detail page.
+2. In `/virtual`, scroll the custom container and use "Open first visible card" before coming back.
+3. In `/infinite`, load more pages, enter a detail page, and come back.
+4. Confirm each mode restores the position it had before navigation.
 
 ### Vanilla example
 
@@ -223,11 +271,14 @@ Steps to verify:
 - Eviction of oldest entries when the max count is exceeded
 - Fallback to default position when custom state restoration fails
 - `popstate`-based save/restore flow
+- Browser E2E coverage for back navigation via Playwright
 - React Provider mount and unmount
 - Container registration, restoration, and saving via the React hook
+- `scrollKey` passthrough for `useVirtualScrollRestore`
 - No unnecessary container re-registration when the state handler changes
 
 ## Examples
 
 - Vanilla: [examples/vanilla/src/main.ts](examples/vanilla/src/main.ts)
 - React: [examples/vite-react/src/App.tsx](examples/vite-react/src/App.tsx)
+- React virtualizer helper: [examples/vite-react/src/useDemoVirtualizer.ts](examples/vite-react/src/useDemoVirtualizer.ts)
