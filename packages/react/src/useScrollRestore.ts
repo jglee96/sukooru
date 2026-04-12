@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { MutableRefObject } from 'react'
 import type {
   ContainerHandle,
@@ -18,6 +18,8 @@ export interface UseScrollRestoreResult {
   status: ScrollRestoreStatus
 }
 
+const useSafeLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
+
 export const useScrollRestore = <T = unknown>({
   containerId = 'window',
   scrollKey,
@@ -27,12 +29,14 @@ export const useScrollRestore = <T = unknown>({
   const containerRef = useRef<HTMLElement | null>(null)
   const handlerHandleRef = useRef<ContainerHandle | null>(null)
   const latestStateHandlerRef = useRef<ScrollStateHandler<T> | undefined>(stateHandler)
+  const restoreRunIdRef = useRef(0)
+  const isRestoringRef = useRef(false)
   const skipNextHandlerSyncRef = useRef(false)
   const [status, setStatus] = useState<ScrollRestoreStatus>('idle')
 
   latestStateHandlerRef.current = stateHandler
 
-  useEffect(() => {
+  useSafeLayoutEffect(() => {
     const element = containerId === 'window' ? window : containerRef.current
     if (!element) {
       return
@@ -46,24 +50,33 @@ export const useScrollRestore = <T = unknown>({
 
     const containerHandle = sukooru.registerContainer(element, containerId)
     let cancelled = false
+    const restoreRunId = ++restoreRunIdRef.current
 
+    isRestoringRef.current = true
     setStatus('restoring')
     void sukooru
       .restore(scrollKey)
       .then((nextStatus) => {
-        if (!cancelled) {
+        if (!cancelled && restoreRunIdRef.current === restoreRunId) {
           setStatus(nextStatus)
         }
       })
       .catch(() => {
-        if (!cancelled) {
+        if (!cancelled && restoreRunIdRef.current === restoreRunId) {
           setStatus('idle')
+        }
+      })
+      .finally(() => {
+        if (restoreRunIdRef.current === restoreRunId) {
+          isRestoringRef.current = false
         }
       })
 
     return () => {
       cancelled = true
-      void sukooru.save(scrollKey)
+      if (!isRestoringRef.current) {
+        void sukooru.save(scrollKey)
+      }
       containerHandle.unregister()
       handlerHandleRef.current?.unregister()
       handlerHandleRef.current = null

@@ -1,3 +1,4 @@
+import { StrictMode } from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import type {
@@ -148,5 +149,34 @@ describe('@sukooru/react', () => {
     })
 
     expect(instance.registerContainer).toHaveBeenCalledTimes(1)
+  })
+
+  it('복원 중 cleanup에서는 저장으로 기존 위치를 덮어쓰지 않는다', async () => {
+    let resolveRestore: ((status: ScrollRestoreStatus) => void) | null = null
+    const instance = createMockInstance()
+    instance.restore.mockImplementation(
+      () =>
+        new Promise<ScrollRestoreStatus>((resolve) => {
+          resolveRestore = resolve
+        }),
+    )
+
+    render(
+      <StrictMode>
+        <SukooruProvider instance={instance}>
+          <HookConsumer containerId="product-list" scrollKey="products" />
+        </SukooruProvider>
+      </StrictMode>,
+    )
+
+    expect(instance.save).not.toHaveBeenCalled()
+
+    resolveRestore?.('restored')
+
+    await waitFor(() => {
+      expect(screen.getByTestId('container')).toHaveAttribute('data-status', 'restored')
+    })
+
+    expect(instance.save).not.toHaveBeenCalled()
   })
 })

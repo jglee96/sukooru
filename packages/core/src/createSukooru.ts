@@ -96,8 +96,14 @@ export const createSukooru = <T = unknown>(
   const stateRegistry = new ScrollStateRegistry<T>()
 
   let mountedCleanup: (() => void) | null = null
-  let restoreAbortController: AbortController | null = null
   let currentTrackedKey = getKey()
+  let activeRestore:
+    | {
+        key: ScrollKey
+        controller: AbortController
+        promise: Promise<ScrollRestoreStatus>
+      }
+    | null = null
 
   const resolveKey = (key?: ScrollKey): ScrollKey => key ?? getKey()
 
@@ -159,6 +165,9 @@ export const createSukooru = <T = unknown>(
   }
 
   const save = async (key?: ScrollKey): Promise<void> => {
+    activeRestore?.controller.abort()
+    activeRestore = null
+
     const resolvedKey = resolveKey(key)
     const entry: ScrollEntry<T> = {
       savedAt: Date.now(),
@@ -212,40 +221,60 @@ export const createSukooru = <T = unknown>(
       return 'idle'
     }
 
-    restoreAbortController?.abort()
-    const controller = new AbortController()
-    restoreAbortController = controller
-
-    emitter.emit('restore:before', { key: resolvedKey, entry })
-
-    try {
-      await delay(restoreDelay)
-
-      if (waitForDomReady) {
-        await waitForNextFrame()
-      }
-
-      if (controller.signal.aborted) {
-        return 'idle'
-      }
-
-      await applyCustomStates(entry, controller.signal, resolvedKey)
-
-      if (controller.signal.aborted) {
-        return 'idle'
-      }
-
-      if (waitForDomReady) {
-        await waitForNextFrame()
-      }
-
-      applyPositions(entry)
-      emitter.emit('restore:after', { key: resolvedKey, entry })
-      return 'restored'
-    } catch (error) {
-      emitter.emit('restore:error', { key: resolvedKey, entry, error })
-      return 'idle'
+    if (activeRestore?.key === resolvedKey) {
+      return activeRestore.promise
     }
+
+    activeRestore?.controller.abort()
+    const controller = new AbortController()
+    const restorePromise = (async (): Promise<ScrollRestoreStatus> => {
+      emitter.emit('restore:before', { key: resolvedKey, entry })
+
+      try {
+        await delay(restoreDelay)
+
+        if (waitForDomReady) {
+          await waitForNextFrame()
+        }
+
+        if (controller.signal.aborted) {
+          return 'idle'
+        }
+
+        await applyCustomStates(entry, controller.signal, resolvedKey)
+
+        if (controller.signal.aborted) {
+          return 'idle'
+        }
+
+        if (waitForDomReady) {
+          await waitForNextFrame()
+        }
+
+        if (controller.signal.aborted) {
+          return 'idle'
+        }
+
+        applyPositions(entry)
+        emitter.emit('restore:after', { key: resolvedKey, entry })
+        return 'restored'
+      } catch (error) {
+        emitter.emit('restore:error', { key: resolvedKey, entry, error })
+        return 'idle'
+      } finally {
+        if (activeRestore?.controller === controller) {
+          activeRestore = null
+        }
+      }
+    })()
+
+    activeRestore = {
+      key: resolvedKey,
+      controller,
+      promise: restorePromise,
+    }
+
+    return restorePromise
   }
 
   const clear = (key?: ScrollKey): void => {
@@ -291,6 +320,18 @@ export const createSukooru = <T = unknown>(
     }
 
     currentTrackedKey = getKey()
+    const originalPushState = window.history.pushState.bind(window.history)
+    const originalReplaceState = window.history.replaceState.bind(window.history)
+
+    window.history.pushState = (...args) => {
+      originalPushState(...args)
+      currentTrackedKey = getKey()
+    }
+
+    window.history.replaceState = (...args) => {
+      originalReplaceState(...args)
+      currentTrackedKey = getKey()
+    }
 
     const handlePopState = async (): Promise<void> => {
       const leavingKey = currentTrackedKey
@@ -312,10 +353,12 @@ export const createSukooru = <T = unknown>(
     mountedCleanup = () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('popstate', handlePopState)
+        window.history.pushState = originalPushState
+        window.history.replaceState = originalReplaceState
       }
 
-      restoreAbortController?.abort()
-      restoreAbortController = null
+      activeRestore?.controller.abort()
+      activeRestore = null
       mountedCleanup = null
       emitter.emit('unmount', {})
     }

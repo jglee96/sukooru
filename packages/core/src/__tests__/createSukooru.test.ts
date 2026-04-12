@@ -170,6 +170,71 @@ describe('createSukooru', () => {
     cleanup()
   })
 
+  it('pushState 뒤 브라우저 뒤로가기에서도 현재 키를 올바르게 추적한다', async () => {
+    const storage = createMemoryStorageAdapter()
+    let currentKey = '/products'
+
+    const sukooru = createSukooru({
+      storage,
+      getKey: () => currentKey,
+      waitForDomReady: false,
+    })
+
+    sukooru.registerContainer(window, 'window')
+
+    setWindowScroll(0, 420)
+    await sukooru.save('/products')
+
+    const cleanup = sukooru.mount()
+
+    currentKey = '/products/7'
+    window.history.pushState({}, '', '/products/7')
+    setWindowScroll(0, 0)
+    currentKey = '/products'
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    await new Promise((resolve) => setTimeout(resolve, 0))
+
+    expect(window.scrollY).toBe(420)
+
+    cleanup()
+  })
+
+  it('같은 키에 대한 중복 복원 요청은 하나의 작업으로 합친다', async () => {
+    vi.useFakeTimers()
+
+    const storage = createMemoryStorageAdapter()
+    const restoreBeforeEvents: string[] = []
+    const sukooru = createSukooru({
+      storage,
+      restoreDelay: 20,
+      waitForDomReady: false,
+    })
+
+    sukooru.registerContainer(window, 'window')
+    sukooru.on('restore:before', ({ key }) => {
+      restoreBeforeEvents.push(key)
+    })
+
+    setWindowScroll(0, 360)
+    await sukooru.save('/products')
+
+    setWindowScroll(0, 0)
+
+    const firstRestore = sukooru.restore('/products')
+    const secondRestore = sukooru.restore('/products')
+
+    vi.advanceTimersByTime(20)
+    await Promise.resolve()
+    await Promise.resolve()
+
+    await expect(firstRestore).resolves.toBe('restored')
+    await expect(secondRestore).resolves.toBe('restored')
+    expect(restoreBeforeEvents).toEqual(['/products'])
+    expect(window.scrollY).toBe(360)
+
+    vi.useRealTimers()
+  })
+
   it('clear와 clearAll이 저장 항목을 정리한다', async () => {
     const sukooru = createSukooru({
       storage: createMemoryStorageAdapter(),

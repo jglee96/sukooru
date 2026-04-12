@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { createSukooru } from '@sukooru/core'
 import type { ReactNode } from 'react'
 import type { SukooruInstance, SukooruOptions } from '@sukooru/core'
@@ -11,6 +11,8 @@ export interface SukooruProviderProps<T = unknown> {
   options?: SukooruOptions<T>
   instance?: SukooruInstance<T>
 }
+
+const useSafeLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
 export const SukooruProvider = <T,>({
   children,
@@ -23,7 +25,7 @@ export const SukooruProvider = <T,>({
     instanceRef.current = createSukooru(options)
   }
 
-  useEffect(() => {
+  useSafeLayoutEffect(() => {
     const cleanup = instanceRef.current?.mount()
     return cleanup
   }, [])
@@ -34,4 +36,3 @@ export const SukooruProvider = <T,>({
     </SukooruContext.Provider>
   )
 }
-
