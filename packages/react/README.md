@@ -1,17 +1,17 @@
-# sukooru-react
+# @sukooru/react
 
 React adapter for Sukooru scroll restoration.
 
 ## Install
 
 ```bash
-pnpm add sukooru-react
+pnpm add @sukooru/react
 ```
 
 ## Usage
 
 ```tsx
-import { SukooruProvider, useScrollRestore } from 'sukooru-react'
+import { SukooruProvider, useScrollRestore } from '@sukooru/react'
 ```
 
 Full documentation and examples:

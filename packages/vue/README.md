@@ -1,17 +1,17 @@
-# sukooru-vue
+# @sukooru/vue
 
 Vue adapter for Sukooru scroll restoration.
 
 ## Install
 
 ```bash
-pnpm add sukooru-vue
+pnpm add @sukooru/vue
 ```
 
 ## Usage
 
 ```ts
-import { createSukooruPlugin, useScrollRestore } from 'sukooru-vue'
+import { createSukooruPlugin, useScrollRestore } from '@sukooru/vue'
 ```
 
 Full documentation and examples:

@@ -1,7 +1,7 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, MutableRefObject, ReactNode, UIEvent } from 'react'
-import type { ScrollRestoreStatus, ScrollStateHandler } from 'sukooru-core'
-import { SukooruProvider, useScrollRestore, useVirtualScrollRestore } from 'sukooru-react'
+import type { ScrollRestoreStatus, ScrollStateHandler } from '@sukooru/core'
+import { SukooruProvider, useScrollRestore, useVirtualScrollRestore } from '@sukooru/react'
 import {
   defaultDemoKind,
   demoByKind,

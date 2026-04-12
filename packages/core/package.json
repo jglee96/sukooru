@@ -1,5 +1,5 @@
 {
-  "name": "sukooru-core",
+  "name": "@sukooru/core",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",

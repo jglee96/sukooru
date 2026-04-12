@@ -1,5 +1,5 @@
 {
-  "name": "sukooru-react",
+  "name": "@sukooru/react",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
@@ -30,7 +30,7 @@
     "access": "public"
   },
   "dependencies": {
-    "sukooru-core": "workspace:*"
+    "@sukooru/core": "workspace:*"
   },
   "peerDependencies": {
     "react": "^19.0.0",

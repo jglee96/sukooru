@@ -1,5 +1,5 @@
 {
-  "name": "sukooru-nuxt",
+  "name": "@sukooru/nuxt",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
@@ -30,8 +30,8 @@
     "access": "public"
   },
   "dependencies": {
-    "sukooru-core": "workspace:*",
-    "sukooru-vue": "workspace:*"
+    "@sukooru/core": "workspace:*",
+    "@sukooru/vue": "workspace:*"
   },
   "peerDependencies": {
     "nuxt": ">=3.0.0",

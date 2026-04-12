@@ -15,25 +15,25 @@
 
 ## 현재 구현 범위
 
-- `sukooru-core`: 구현 완료
-- `sukooru-react`: 구현 완료
-- `sukooru-vue`: 구현 완료
-- `sukooru-next`: 구현 완료
-- `sukooru-nuxt`: 구현 완료
-- `sukooru-svelte`: 구현 완료
+- `@sukooru/core`: 구현 완료
+- `@sukooru/react`: 구현 완료
+- `@sukooru/vue`: 구현 완료
+- `@sukooru/next`: 구현 완료
+- `@sukooru/nuxt`: 구현 완료
+- `@sukooru/svelte`: 구현 완료
 
 ## Feature TODO List
 
 ### 완료된 기능
 
-- [x] `sukooru-core` 기본 저장/복원 API
+- [x] `@sukooru/core` 기본 저장/복원 API
 - [x] `sessionStorage` 기반 저장소와 테스트용 메모리 저장소
 - [x] TTL 및 최대 저장 개수 관리
 - [x] `popstate` 기반 브라우저 뒤로가기 복원
 - [x] `pushState`/`replaceState` 이후 현재 키 추적
 - [x] 커스텀 `ScrollStateHandler` 기반 상태 복원
-- [x] `sukooru-react`의 `SukooruProvider`
-- [x] `sukooru-react`의 `useScrollRestore`
+- [x] `@sukooru/react`의 `SukooruProvider`
+- [x] `@sukooru/react`의 `useScrollRestore`
 - [x] 브라우저 뒤로가기 복원을 고정하는 Playwright E2E 테스트
 - [x] React `StrictMode`에서 복원 중 중복 저장 방지
 - [x] `useVirtualScrollRestore` 실사용 React 예제
@@ -43,10 +43,10 @@
 
 ### 해야 할 기능
 
-- [x] `sukooru-vue` 실제 어댑터 구현
-- [x] `sukooru-next` 실제 어댑터 구현
-- [x] `sukooru-nuxt` 실제 어댑터 구현
-- [x] `sukooru-svelte` 실제 어댑터 구현
+- [x] `@sukooru/vue` 실제 어댑터 구현
+- [x] `@sukooru/next` 실제 어댑터 구현
+- [x] `@sukooru/nuxt` 실제 어댑터 구현
+- [x] `@sukooru/svelte` 실제 어댑터 구현
 
 ## 패키지 구조
 
@@ -70,7 +70,7 @@ examples/
 `SukooruProvider`로 앱을 감싸고, 복원이 필요한 컨테이너에 `useScrollRestore`를 달면 됩니다. `save()`나 `restore()`를 직접 호출할 필요는 없습니다. 훅이 컨테이너 등록, 복원, unmount 시 저장을 모두 처리합니다.
 
 ```tsx
-import { SukooruProvider, useScrollRestore } from 'sukooru-react'
+import { SukooruProvider, useScrollRestore } from '@sukooru/react'
 
 function ProductListPage() {
   const { ref, status } = useScrollRestore({
@@ -101,7 +101,7 @@ export function App() {
 ```ts
 // main.ts
 import { createApp } from 'vue'
-import { createSukooruPlugin } from 'sukooru-vue'
+import { createSukooruPlugin } from '@sukooru/vue'
 import App from './App.vue'
 
 createApp(App).use(createSukooruPlugin()).mount('#app')
@@ -110,7 +110,7 @@ createApp(App).use(createSukooruPlugin()).mount('#app')
 ```vue
 <!-- ProductList.vue -->
 <script setup lang="ts">
-import { useScrollRestore } from 'sukooru-vue'
+import { useScrollRestore } from '@sukooru/vue'
 
 const { el, status } = useScrollRestore({ containerId: 'product-list' })
 </script>
@@ -129,7 +129,7 @@ const { el, status } = useScrollRestore({ containerId: 'product-list' })
 
 ```tsx
 // app/layout.tsx
-import { SukooruProvider } from 'sukooru-next'
+import { SukooruProvider } from '@sukooru/next'
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -145,7 +145,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ```tsx
 // app/products/page.tsx
 'use client'
-import { useScrollRestore } from 'sukooru-next'
+import { useScrollRestore } from '@sukooru/next'
 
 export default function ProductsPage() {
   const { ref, status } = useScrollRestore({ containerId: 'product-list' })
@@ -165,7 +165,7 @@ export default function ProductsPage() {
 
 ```ts
 // plugins/sukooru.client.ts
-import { createSukooruNuxtPlugin } from 'sukooru-nuxt'
+import { createSukooruNuxtPlugin } from '@sukooru/nuxt'
 
 export default createSukooruNuxtPlugin()
 ```
@@ -173,7 +173,7 @@ export default createSukooruNuxtPlugin()
 ```vue
 <!-- pages/products.vue -->
 <script setup lang="ts">
-import { useScrollRestore } from 'sukooru-nuxt'
+import { useScrollRestore } from '@sukooru/nuxt'
 
 const { el, status } = useScrollRestore({ containerId: 'product-list' })
 </script>
@@ -194,7 +194,7 @@ const { el, status } = useScrollRestore({ containerId: 'product-list' })
 <!-- +layout.svelte -->
 <script lang="ts">
   import { browser } from '$app/environment'
-  import { createSukooruProvider, setSukooruContext } from 'sukooru-svelte'
+  import { createSukooruProvider, setSukooruContext } from '@sukooru/svelte'
   import { page } from '$app/stores'
 
   if (browser) {
@@ -211,7 +211,7 @@ const { el, status } = useScrollRestore({ containerId: 'product-list' })
 ```svelte
 <!-- ProductList.svelte -->
 <script lang="ts">
-  import { getSukooruContext, createScrollRestore } from 'sukooru-svelte'
+  import { getSukooruContext, createScrollRestore } from '@sukooru/svelte'
 
   const sukooru = getSukooruContext()
   const { action, status } = createScrollRestore(sukooru)
@@ -228,7 +228,7 @@ const { el, status } = useScrollRestore({ containerId: 'product-list' })
 Vanilla 환경에서는 명령형 API를 씁니다. 저장소와 복원 로직은 여전히 하나의 인스턴스가 책임집니다.
 
 ```ts
-import { createSukooru } from 'sukooru-core'
+import { createSukooru } from '@sukooru/core'
 
 const sukooru = createSukooru()
 const container = document.querySelector('#product-list')
@@ -262,7 +262,7 @@ virtual scroll에서는 현재 DOM에 보이는 행만 렌더링되기 때문에
 상세 페이지로 `pushState` 한 뒤 리스트가 unmount 되는 구조라면, 저장 키를 리스트 경로에 고정하기 위해 `scrollKey`를 같이 넘기는 편이 안전합니다.
 
 ```tsx
-import { useVirtualScrollRestore } from 'sukooru-react'
+import { useVirtualScrollRestore } from '@sukooru/react'
 
 function VirtualProductList({ rowVirtualizer }) {
   const { ref, status } = useVirtualScrollRestore({
@@ -286,8 +286,8 @@ function VirtualProductList({ rowVirtualizer }) {
 
 ```tsx
 import { useMemo } from 'react'
-import { useScrollRestore } from 'sukooru-react'
-import type { ScrollStateHandler } from 'sukooru-core'
+import { useScrollRestore } from '@sukooru/react'
+import type { ScrollStateHandler } from '@sukooru/core'
 
 type InfiniteState = {
   loadedPageCount: number
@@ -323,13 +323,13 @@ function ProductList() {
 각 공식 어댑터는 키 결정을 자동으로 처리합니다. 아래 패턴은 키를 커스터마이즈하거나 공식 어댑터가 없는 라우터를 직접 연동할 때 참고합니다.
 
 - React Router / 커스텀 client router: `SukooruProvider`는 앱 루트에 두고 `getKey`는 `pathname + search` 기준으로 맞춥니다. 리스트가 detail route로 `pushState` 된 뒤 unmount 된다면 `scrollKey`를 리스트 경로로 고정합니다.
-- Next.js App Router: `sukooru-next`의 `SukooruProvider`는 `usePathname()`과 `useSearchParams()`를 기반으로 키를 자동 결정합니다. 커스텀 스크롤 컨테이너에서는 `scrollKey`를 리스트 route로 넘기는 편이 안전합니다.
-- Vue Router / Nuxt: `sukooru-vue`와 `sukooru-nuxt`는 기본적으로 `currentRoute.value.fullPath`를 키로 사용합니다. 컨테이너 등록과 해제는 composable의 `onMounted`/`onUnmounted` 안에서 처리됩니다.
-- SvelteKit: `sukooru-svelte`는 Svelte action 패턴을 사용합니다. `createSukooruProvider`에 `getKey`로 `$page.url.pathname + $page.url.search`를 전달하고, 라우트 컴포넌트가 mount 된 뒤에 복원이 실행됩니다.
+- Next.js App Router: `@sukooru/next`의 `SukooruProvider`는 `usePathname()`과 `useSearchParams()`를 기반으로 키를 자동 결정합니다. 커스텀 스크롤 컨테이너에서는 `scrollKey`를 리스트 route로 넘기는 편이 안전합니다.
+- Vue Router / Nuxt: `@sukooru/vue`와 `@sukooru/nuxt`는 기본적으로 `currentRoute.value.fullPath`를 키로 사용합니다. 컨테이너 등록과 해제는 composable의 `onMounted`/`onUnmounted` 안에서 처리됩니다.
+- SvelteKit: `@sukooru/svelte`는 Svelte action 패턴을 사용합니다. `createSukooruProvider`에 `getKey`로 `$page.url.pathname + $page.url.search`를 전달하고, 라우트 컴포넌트가 mount 된 뒤에 복원이 실행됩니다.
 
 ## 공개 API
 
-### `sukooru-core`
+### `@sukooru/core`
 
 - `createSukooru(options?)`
 - `sessionStorageAdapter`
@@ -338,7 +338,7 @@ function ProductList() {
 - `ScrollStateHandler`
 - `ScrollRestoreStatus`
 
-### `sukooru-react`
+### `@sukooru/react`
 
 - `SukooruProvider`
 - `useSukooru()`
@@ -347,7 +347,7 @@ function ProductList() {
 
 `useVirtualScrollRestore()`는 `containerId`, `virtualizer`, optional `scrollKey`, `invalidateOnCountChange`를 받습니다.
 
-### `sukooru-vue`
+### `@sukooru/vue`
 
 - `createSukooruPlugin(options?)`
 - `SUKOORU_KEY`
@@ -355,22 +355,22 @@ function ProductList() {
 - `useScrollRestore()`
 - `useVirtualScrollRestore()`
 
-### `sukooru-next`
+### `@sukooru/next`
 
 - `SukooruProvider`
-- `useSukooru()` (`sukooru-react`에서 재내보내기)
+- `useSukooru()` (`@sukooru/react`에서 재내보내기)
 - `useScrollRestore()`
 - `useVirtualScrollRestore()`
 - `withSukooruRestore(options?)` — 페이지/레이아웃 수준 복원용 HOC
 
-### `sukooru-nuxt`
+### `@sukooru/nuxt`
 
 - `createSukooruNuxtPlugin(options?)`
 - `useSukooru()`
 - `useScrollRestore()`
 - `useVirtualScrollRestore()`
 
-### `sukooru-svelte`
+### `@sukooru/svelte`
 
 - `createSukooruProvider(options?)`
 - `getSukooruContext()` / `setSukooruContext(instance)`
@@ -397,7 +397,7 @@ pnpm build
 
 이 저장소는 Changesets와 GitHub Actions 기반으로 npm 배포를 하도록 설정되어 있습니다.
 
-- 공개 패키지: `sukooru-core`, `sukooru-react`, `sukooru-next`, `sukooru-vue`, `sukooru-nuxt`, `sukooru-svelte`
+- 공개 패키지: `@sukooru/core`, `@sukooru/react`, `@sukooru/next`, `@sukooru/vue`, `@sukooru/nuxt`, `@sukooru/svelte`
 - GitHub Actions 워크플로: [.github/workflows/release.yml](.github/workflows/release.yml)
 - npm access: 각 공개 패키지의 `publishConfig.access`는 `public`으로 설정되어 있습니다.
 
@@ -414,8 +414,8 @@ pnpm build
 
 첫 배포 주의사항:
 
-- `sukooru-core` 같은 unscoped 패키지는 npm에서 항상 public입니다.
-- npm은 2025년 11월부터 granular token만 지원합니다. 따라서 `NPM_TOKEN`에는 각 패키지에 대한 `read and write` 권한과 `Bypass 2FA`가 모두 필요합니다.
+- `@sukooru/core` 같은 scoped 패키지는 첫 publish 시 `public` 접근 수준이 필요하며, 이 저장소는 각 패키지의 `publishConfig.access`를 이미 `public`으로 설정해 둡니다.
+- npm은 2025년 11월부터 granular token만 지원합니다. 따라서 `NPM_TOKEN`에는 `sukooru` organization 패키지에 대한 `read and write` 권한과 `Bypass 2FA`가 모두 필요합니다.
 - 이 권한이 없으면 GitHub Actions에서 첫 publish가 `E404 Not Found - PUT https://registry.npmjs.org/<package>`처럼 다소 오해하기 쉬운 에러로 실패할 수 있습니다.
 - 새 패키지의 첫 배포는 로컬에서 `npm login` 후 `pnpm release`로 한 번 올린 다음, npm 패키지 설정에서 trusted publisher를 연결하는 흐름을 권장합니다.
 - 이후에는 GitHub Actions OIDC trusted publishing을 쓰면 `NPM_TOKEN` 없이도 publish할 수 있습니다.

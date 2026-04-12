@@ -1,17 +1,17 @@
-# sukooru-core
+# @sukooru/core
 
 History-aware scroll restoration core for browser apps.
 
 ## Install
 
 ```bash
-pnpm add sukooru-core
+pnpm add @sukooru/core
 ```
 
 ## Usage
 
 ```ts
-import { createSukooru } from 'sukooru-core'
+import { createSukooru } from '@sukooru/core'
 
 const sukooru = createSukooru()
 ```

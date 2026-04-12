@@ -1,5 +1,5 @@
 {
-  "name": "sukooru-next",
+  "name": "@sukooru/next",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
@@ -30,8 +30,8 @@
     "access": "public"
   },
   "dependencies": {
-    "sukooru-core": "workspace:*",
-    "sukooru-react": "workspace:*"
+    "@sukooru/core": "workspace:*",
+    "@sukooru/react": "workspace:*"
   },
   "peerDependencies": {
     "next": ">=15.0.0",

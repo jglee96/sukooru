@@ -1,8 +1,8 @@
-import { useScrollRestore as useReactScrollRestore } from 'sukooru-react'
+import { useScrollRestore as useReactScrollRestore } from '@sukooru/react'
 import type {
   UseScrollRestoreOptions,
   UseScrollRestoreResult,
-} from 'sukooru-react'
+} from '@sukooru/react'
 import { useRouteKey } from './routeKey'
 
 export const useScrollRestore = <T = unknown>(

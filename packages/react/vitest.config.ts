@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 export default defineConfig({
   resolve: {
     alias: {
-      'sukooru-core': fileURLToPath(new URL('../core/src/index.ts', import.meta.url)),
+      '@sukooru/core': fileURLToPath(new URL('../core/src/index.ts', import.meta.url)),
     },
   },
   test: {

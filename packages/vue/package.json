@@ -1,5 +1,5 @@
 {
-  "name": "sukooru-vue",
+  "name": "@sukooru/vue",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
@@ -30,7 +30,7 @@
     "access": "public"
   },
   "dependencies": {
-    "sukooru-core": "workspace:*"
+    "@sukooru/core": "workspace:*"
   },
   "peerDependencies": {
     "vue": "^3.3.0"

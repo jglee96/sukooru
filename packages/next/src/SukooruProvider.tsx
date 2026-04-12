@@ -2,10 +2,10 @@
 
 import { useEffect, useLayoutEffect, useRef } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { createSukooru } from 'sukooru-core'
-import { SukooruContext } from 'sukooru-react'
+import { createSukooru } from '@sukooru/core'
+import { SukooruContext } from '@sukooru/react'
 import type { ReactNode } from 'react'
-import type { SukooruInstance, SukooruOptions } from 'sukooru-core'
+import type { SukooruInstance, SukooruOptions } from '@sukooru/core'
 import { RouteKeyContext, buildRouteKey } from './routeKey'
 
 export interface SukooruProviderProps<T = unknown> {

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { ScrollStateHandler } from 'sukooru-core'
+import type { ScrollStateHandler } from '@sukooru/core'
 import { useScrollRestore } from './useScrollRestore'
 
 export interface VirtualItemLike {

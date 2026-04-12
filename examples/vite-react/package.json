@@ -1,5 +1,5 @@
 {
-  "name": "sukooru-example-vite-react",
+  "name": "@sukooru/example-vite-react",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -14,7 +14,7 @@
     "test": "echo \"리액트 예제에는 자동 테스트가 없습니다.\""
   },
   "dependencies": {
-    "sukooru-react": "workspace:*",
+    "@sukooru/react": "workspace:*",
     "react": "^19.2.5",
     "react-dom": "^19.2.5"
   },

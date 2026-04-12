@@ -1,18 +1,18 @@
-# sukooru-svelte
+# @sukooru/svelte
 
 Svelte adapter for Sukooru scroll restoration.
 
 ## Install
 
 ```bash
-pnpm add sukooru-svelte
+pnpm add @sukooru/svelte
 ```
 
 ## Usage
 
 ```svelte
 <script lang="ts">
-  import { createSukooruProvider } from 'sukooru-svelte'
+  import { createSukooruProvider } from '@sukooru/svelte'
 </script>
 ```
 

@@ -1,5 +1,5 @@
 import { computed, toValue } from 'vue'
-import type { ScrollStateHandler } from 'sukooru-core'
+import type { ScrollStateHandler } from '@sukooru/core'
 import type { MaybeRefOrGetter } from 'vue'
 import { useScrollRestore } from './useScrollRestore'
 

@@ -10,7 +10,7 @@ import type {
   ContainerHandle,
   ScrollRestoreStatus,
   ScrollStateHandler,
-} from 'sukooru-core'
+} from '@sukooru/core'
 import type { MaybeRefOrGetter, Ref, ShallowRef } from 'vue'
 import { useSukooru } from './useSukooru'
 

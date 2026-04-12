@@ -1,5 +1,5 @@
 {
-  "name": "sukooru-svelte",
+  "name": "@sukooru/svelte",
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
@@ -30,7 +30,7 @@
     "access": "public"
   },
   "dependencies": {
-    "sukooru-core": "workspace:*"
+    "@sukooru/core": "workspace:*"
   },
   "peerDependencies": {
     "svelte": "^5.0.0 || ^4.0.0"

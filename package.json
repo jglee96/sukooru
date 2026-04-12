@@ -19,8 +19,8 @@
   "scripts": {
     "build": "turbo run build && node scripts/verify-package-exports.mjs",
     "changeset": "changeset",
-    "dev:example:react": "pnpm --filter sukooru-example-vite-react dev",
-    "dev:example:vanilla": "pnpm --filter sukooru-example-vanilla dev",
+    "dev:example:react": "pnpm --filter @sukooru/example-vite-react dev",
+    "dev:example:vanilla": "pnpm --filter @sukooru/example-vanilla dev",
     "release": "pnpm build && changeset publish",
     "release:check": "pnpm typecheck && pnpm test && pnpm build",
     "test": "turbo run test",

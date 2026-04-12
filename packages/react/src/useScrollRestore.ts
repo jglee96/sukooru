@@ -4,7 +4,7 @@ import type {
   ContainerHandle,
   ScrollStateHandler,
   ScrollRestoreStatus,
-} from 'sukooru-core'
+} from '@sukooru/core'
 import { useSukooru } from './useSukooru'
 
 export interface UseScrollRestoreOptions<T = unknown> {

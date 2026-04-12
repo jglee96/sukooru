@@ -6,7 +6,7 @@ import type {
   ScrollRestoreStatus,
   ScrollStateHandler,
   SukooruInstance,
-} from 'sukooru-core'
+} from '@sukooru/core'
 import { SukooruProvider } from '../SukooruProvider'
 import { useScrollRestore } from '../useScrollRestore'
 import { useSukooru } from '../useSukooru'
@@ -97,7 +97,7 @@ const VirtualHookConsumer = ({
   )
 }
 
-describe('sukooru-react', () => {
+describe('@sukooru/react', () => {
   it('provider가 mount 정리 함수를 연결한다', () => {
     const cleanup = vi.fn()
     const instance = createMockInstance()

@@ -4,7 +4,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   resolve: {
     alias: {
-      'sukooru-core': fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
+      '@sukooru/core': fileURLToPath(new URL('../../packages/core/src/index.ts', import.meta.url)),
     },
   },
   server: {

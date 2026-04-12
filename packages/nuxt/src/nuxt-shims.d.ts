@@ -1,6 +1,6 @@
 declare module '#app' {
   import type { App } from 'vue'
-  import type { SukooruInstance } from 'sukooru-core'
+  import type { SukooruInstance } from '@sukooru/core'
 
   export interface NuxtRouteLike {
     fullPath: string

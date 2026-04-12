@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { describe, expect, it, vi } from 'vitest'
-import type { SukooruInstance } from 'sukooru-core'
+import type { SukooruInstance } from '@sukooru/core'
 
 const routeState = vi.hoisted(() => ({
   fullPath: '/products?page=2',
@@ -54,11 +54,11 @@ vi.mock('#app', () => ({
   useRoute: () => routeState,
 }))
 
-vi.mock('sukooru-core', () => ({
+vi.mock('@sukooru/core', () => ({
   createSukooru: createSukooruMock,
 }))
 
-vi.mock('sukooru-vue', () => ({
+vi.mock('@sukooru/vue', () => ({
   createSukooruPlugin: createSukooruPluginMock,
   useScrollRestore: useVueScrollRestoreMock,
   useVirtualScrollRestore: useVueVirtualScrollRestoreMock,
@@ -71,7 +71,7 @@ import {
   useVirtualScrollRestore,
 } from '../index'
 
-describe('sukooru-nuxt', () => {
+describe('@sukooru/nuxt', () => {
   it('plugin이 Nuxt app에 인스턴스를 주입하고 Vue plugin을 설치한다', () => {
     const plugin = createSukooruNuxtPlugin()
     plugin(nuxtAppState.app as never)

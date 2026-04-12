@@ -1,17 +1,17 @@
-# sukooru-next
+# @sukooru/next
 
 Next.js adapter for Sukooru scroll restoration.
 
 ## Install
 
 ```bash
-pnpm add sukooru-next
+pnpm add @sukooru/next
 ```
 
 ## Usage
 
 ```tsx
-import { SukooruProvider, useScrollRestore } from 'sukooru-next'
+import { SukooruProvider, useScrollRestore } from '@sukooru/next'
 ```
 
 Full documentation and examples:

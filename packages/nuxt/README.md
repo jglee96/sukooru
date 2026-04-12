@@ -1,17 +1,17 @@
-# sukooru-nuxt
+# @sukooru/nuxt
 
 Nuxt adapter for Sukooru scroll restoration.
 
 ## Install
 
 ```bash
-pnpm add sukooru-nuxt
+pnpm add @sukooru/nuxt
 ```
 
 ## Usage
 
 ```ts
-import { createSukooruNuxtPlugin, useScrollRestore } from 'sukooru-nuxt'
+import { createSukooruNuxtPlugin, useScrollRestore } from '@sukooru/nuxt'
 ```
 
 Full documentation and examples:

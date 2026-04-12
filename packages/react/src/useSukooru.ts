@@ -1,5 +1,5 @@
 import { useContext } from 'react'
-import type { SukooruInstance } from 'sukooru-core'
+import type { SukooruInstance } from '@sukooru/core'
 import { SukooruContext } from './SukooruContext'
 
 export const useSukooru = <T = unknown>(): SukooruInstance<T> => {
