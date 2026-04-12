@@ -2,6 +2,7 @@
   "name": "@sukooru/react",
   "version": "0.1.0",
   "type": "module",
+  "license": "MIT",
   "description": "Sukooru React 어댑터",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

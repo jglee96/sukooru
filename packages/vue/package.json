@@ -2,6 +2,7 @@
   "name": "@sukooru/vue",
   "version": "0.1.0",
   "type": "module",
+  "license": "MIT",
   "description": "Sukooru Vue 어댑터",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
