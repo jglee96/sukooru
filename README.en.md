@@ -91,6 +91,135 @@ export function App() {
 }
 ```
 
+### Vue
+
+Register `createSukooruPlugin` in your Vue app and use `useScrollRestore` inside any component.
+
+```ts
+// main.ts
+import { createApp } from 'vue'
+import { createSukooruPlugin } from '@sukooru/vue'
+import App from './App.vue'
+
+createApp(App).use(createSukooruPlugin()).mount('#app')
+```
+
+```vue
+<!-- ProductList.vue -->
+<script setup lang="ts">
+import { useScrollRestore } from '@sukooru/vue'
+
+const { el, status } = useScrollRestore({ containerId: 'product-list' })
+</script>
+
+<template>
+  <div ref="el" style="height: 100vh; overflow-y: auto">
+    <span v-if="status === 'restoring'">Restoring...</span>
+    <!-- product list -->
+  </div>
+</template>
+```
+
+### Next.js (App Router)
+
+Place `SukooruProvider` inside a `'use client'` boundary. It automatically derives the scroll key from `usePathname` and `useSearchParams`.
+
+```tsx
+// app/layout.tsx
+import { SukooruProvider } from '@sukooru/next'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <SukooruProvider>{children}</SukooruProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+```tsx
+// app/products/page.tsx
+'use client'
+import { useScrollRestore } from '@sukooru/next'
+
+export default function ProductsPage() {
+  const { ref, status } = useScrollRestore({ containerId: 'product-list' })
+
+  return (
+    <main ref={ref} style={{ height: '100vh', overflowY: 'auto' }}>
+      {status === 'restoring' ? 'Restoring...' : null}
+      {/* product list */}
+    </main>
+  )
+}
+```
+
+### Nuxt
+
+Register the plugin via `createSukooruNuxtPlugin`. It automatically uses `currentRoute.value.fullPath` as the scroll key.
+
+```ts
+// plugins/sukooru.client.ts
+import { createSukooruNuxtPlugin } from '@sukooru/nuxt'
+
+export default createSukooruNuxtPlugin()
+```
+
+```vue
+<!-- pages/products.vue -->
+<script setup lang="ts">
+import { useScrollRestore } from '@sukooru/nuxt'
+
+const { el, status } = useScrollRestore({ containerId: 'product-list' })
+</script>
+
+<template>
+  <div ref="el" style="height: 100vh; overflow-y: auto">
+    <span v-if="status === 'restoring'">Restoring...</span>
+    <!-- product list -->
+  </div>
+</template>
+```
+
+### SvelteKit
+
+Create the provider in a browser-only module (e.g., a layout component) and use `createScrollRestoreAction` in each component.
+
+```svelte
+<!-- +layout.svelte -->
+<script lang="ts">
+  import { browser } from '$app/environment'
+  import { createSukooruProvider, setSukooruContext } from '@sukooru/svelte'
+  import { page } from '$app/stores'
+
+  if (browser) {
+    const provider = createSukooruProvider({
+      getKey: () => $page.url.pathname + $page.url.search,
+    })
+    setSukooruContext(provider.instance)
+  }
+</script>
+
+<slot />
+```
+
+```svelte
+<!-- ProductList.svelte -->
+<script lang="ts">
+  import { getSukooruContext, createScrollRestore } from '@sukooru/svelte'
+
+  const sukooru = getSukooruContext()
+  const { action, status } = createScrollRestore(sukooru)
+</script>
+
+<div use:action={{ containerId: 'product-list' }} style="height: 100vh; overflow-y: auto">
+  {#if $status === 'restoring'}Restoring...{/if}
+  <!-- product list -->
+</div>
+```
+
 ### Vanilla
 
 In a vanilla environment you use the imperative API, but a single instance still owns the store and the restore logic.
@@ -188,12 +317,12 @@ function ProductList() {
 
 ## Router integration guide
 
-These are recommended integration patterns for frameworks that do not yet have a finished first-party adapter in this repo. Right now only `@sukooru/react` is fully implemented.
+Each first-party adapter handles key derivation automatically. The patterns below apply when you need to customise the key or integrate a router not covered by a first-party adapter.
 
 - React Router or any client-side router: keep `SukooruProvider` at the app root and derive the key from `pathname + search`. If the list unmounts after a detail `pushState`, pin the list route with an explicit `scrollKey`.
-- Next.js App Router: place `SukooruProvider` inside a `'use client'` boundary and derive keys from `usePathname()` (plus search params if needed). For custom scroll containers, pass the list route as `scrollKey`.
-- Vue Router or Nuxt: use `currentRoute.value.fullPath` as the key and keep container registration inside a composable tied to `onMounted` / `onUnmounted`.
-- SvelteKit: create the Sukooru instance in a browser-only module, use `$page.url.pathname + $page.url.search` as the key, and restore only after the route component mounts.
+- Next.js App Router: `@sukooru/next`'s `SukooruProvider` automatically derives the key from `usePathname()` and `useSearchParams()`. For custom scroll containers, pass the list route as `scrollKey`.
+- Vue Router or Nuxt: `@sukooru/vue` and `@sukooru/nuxt` use `currentRoute.value.fullPath` as the default key. Container registration is handled inside composables tied to `onMounted` / `onUnmounted`.
+- SvelteKit: `@sukooru/svelte` uses the Svelte action pattern. Pass a custom `getKey` to `createSukooruProvider` using `$page.url.pathname + $page.url.search`, and restore only after the route component mounts.
 
 ## Public API
 
@@ -214,6 +343,39 @@ These are recommended integration patterns for frameworks that do not yet have a
 - `useVirtualScrollRestore()`
 
 `useVirtualScrollRestore()` accepts `containerId`, `virtualizer`, optional `scrollKey`, and `invalidateOnCountChange`.
+
+### `@sukooru/vue`
+
+- `createSukooruPlugin(options?)`
+- `SUKOORU_KEY`
+- `useSukooru()`
+- `useScrollRestore()`
+- `useVirtualScrollRestore()`
+
+### `@sukooru/next`
+
+- `SukooruProvider`
+- `useSukooru()` (re-exported from `@sukooru/react`)
+- `useScrollRestore()`
+- `useVirtualScrollRestore()`
+- `withSukooruRestore(options?)` — HOC for page/layout-level restore
+
+### `@sukooru/nuxt`
+
+- `createSukooruNuxtPlugin(options?)`
+- `useSukooru()`
+- `useScrollRestore()`
+- `useVirtualScrollRestore()`
+
+### `@sukooru/svelte`
+
+- `createSukooruProvider(options?)`
+- `getSukooruContext()` / `setSukooruContext(instance)`
+- `SUKOORU_CONTEXT`
+- `createScrollRestore(instance)` — returns `{ action, status }`
+- `createScrollRestoreAction(instance)` — returns the Svelte action directly
+- `createVirtualScrollRestore(instance)` — returns `{ action, status }`
+- `createVirtualScrollRestoreAction(instance)` — returns the Svelte action directly
 
 ## Development
 

@@ -91,6 +91,135 @@ export function App() {
 }
 ```
 
+### Vue
+
+`createSukooruPlugin`을 Vue 앱에 등록하고, 컴포넌트에서 `useScrollRestore`를 사용합니다.
+
+```ts
+// main.ts
+import { createApp } from 'vue'
+import { createSukooruPlugin } from '@sukooru/vue'
+import App from './App.vue'
+
+createApp(App).use(createSukooruPlugin()).mount('#app')
+```
+
+```vue
+<!-- ProductList.vue -->
+<script setup lang="ts">
+import { useScrollRestore } from '@sukooru/vue'
+
+const { el, status } = useScrollRestore({ containerId: 'product-list' })
+</script>
+
+<template>
+  <div ref="el" style="height: 100vh; overflow-y: auto">
+    <span v-if="status === 'restoring'">복원 중...</span>
+    <!-- 상품 목록 -->
+  </div>
+</template>
+```
+
+### Next.js (App Router)
+
+`SukooruProvider`를 `'use client'` 경계 안에 두면 됩니다. `usePathname`과 `useSearchParams`를 기반으로 스크롤 키를 자동으로 결정합니다.
+
+```tsx
+// app/layout.tsx
+import { SukooruProvider } from '@sukooru/next'
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html>
+      <body>
+        <SukooruProvider>{children}</SukooruProvider>
+      </body>
+    </html>
+  )
+}
+```
+
+```tsx
+// app/products/page.tsx
+'use client'
+import { useScrollRestore } from '@sukooru/next'
+
+export default function ProductsPage() {
+  const { ref, status } = useScrollRestore({ containerId: 'product-list' })
+
+  return (
+    <main ref={ref} style={{ height: '100vh', overflowY: 'auto' }}>
+      {status === 'restoring' ? '복원 중...' : null}
+      {/* 상품 목록 */}
+    </main>
+  )
+}
+```
+
+### Nuxt
+
+`createSukooruNuxtPlugin`으로 플러그인을 등록합니다. `currentRoute.value.fullPath`를 스크롤 키로 자동 사용합니다.
+
+```ts
+// plugins/sukooru.client.ts
+import { createSukooruNuxtPlugin } from '@sukooru/nuxt'
+
+export default createSukooruNuxtPlugin()
+```
+
+```vue
+<!-- pages/products.vue -->
+<script setup lang="ts">
+import { useScrollRestore } from '@sukooru/nuxt'
+
+const { el, status } = useScrollRestore({ containerId: 'product-list' })
+</script>
+
+<template>
+  <div ref="el" style="height: 100vh; overflow-y: auto">
+    <span v-if="status === 'restoring'">복원 중...</span>
+    <!-- 상품 목록 -->
+  </div>
+</template>
+```
+
+### SvelteKit
+
+레이아웃 컴포넌트 등 브라우저 전용 컨텍스트에서 프로바이더를 생성하고, 각 컴포넌트에서 `createScrollRestoreAction`을 사용합니다.
+
+```svelte
+<!-- +layout.svelte -->
+<script lang="ts">
+  import { browser } from '$app/environment'
+  import { createSukooruProvider, setSukooruContext } from '@sukooru/svelte'
+  import { page } from '$app/stores'
+
+  if (browser) {
+    const provider = createSukooruProvider({
+      getKey: () => $page.url.pathname + $page.url.search,
+    })
+    setSukooruContext(provider.instance)
+  }
+</script>
+
+<slot />
+```
+
+```svelte
+<!-- ProductList.svelte -->
+<script lang="ts">
+  import { getSukooruContext, createScrollRestore } from '@sukooru/svelte'
+
+  const sukooru = getSukooruContext()
+  const { action, status } = createScrollRestore(sukooru)
+</script>
+
+<div use:action={{ containerId: 'product-list' }} style="height: 100vh; overflow-y: auto">
+  {#if $status === 'restoring'}복원 중...{/if}
+  <!-- 상품 목록 -->
+</div>
+```
+
 ### Vanilla
 
 Vanilla 환경에서는 명령형 API를 씁니다. 저장소와 복원 로직은 여전히 하나의 인스턴스가 책임집니다.
@@ -188,12 +317,12 @@ function ProductList() {
 
 ## 라우터 연동 가이드
 
-아래 가이드는 아직 공식 어댑터가 없는 프레임워크를 붙일 때의 권장 패턴입니다. 지금 저장소에 실제 구현이 완료된 패키지는 `@sukooru/react`뿐입니다.
+각 공식 어댑터는 키 결정을 자동으로 처리합니다. 아래 패턴은 키를 커스터마이즈하거나 공식 어댑터가 없는 라우터를 직접 연동할 때 참고합니다.
 
 - React Router / 커스텀 client router: `SukooruProvider`는 앱 루트에 두고 `getKey`는 `pathname + search` 기준으로 맞춥니다. 리스트가 detail route로 `pushState` 된 뒤 unmount 된다면 `scrollKey`를 리스트 경로로 고정합니다.
-- Next.js App Router: `SukooruProvider`는 `'use client'` 경계 안에 두고 `usePathname()` 기준으로 키를 맞춥니다. 리스트와 상세가 같은 layout을 공유해도, 복원 대상이 커스텀 컨테이너라면 `scrollKey`를 리스트 route로 넘기는 편이 안전합니다.
-- Vue Router / Nuxt: `currentRoute.value.fullPath`를 키로 삼고, 컨테이너 등록과 해제를 composable의 `onMounted`/`onUnmounted` 안에 둡니다.
-- SvelteKit: 브라우저 전용 모듈에서 인스턴스를 만들고 `$page.url.pathname + $page.url.search`를 키로 사용합니다. 라우트 컴포넌트가 mount 된 뒤에 복원 훅을 붙입니다.
+- Next.js App Router: `@sukooru/next`의 `SukooruProvider`는 `usePathname()`과 `useSearchParams()`를 기반으로 키를 자동 결정합니다. 커스텀 스크롤 컨테이너에서는 `scrollKey`를 리스트 route로 넘기는 편이 안전합니다.
+- Vue Router / Nuxt: `@sukooru/vue`와 `@sukooru/nuxt`는 기본적으로 `currentRoute.value.fullPath`를 키로 사용합니다. 컨테이너 등록과 해제는 composable의 `onMounted`/`onUnmounted` 안에서 처리됩니다.
+- SvelteKit: `@sukooru/svelte`는 Svelte action 패턴을 사용합니다. `createSukooruProvider`에 `getKey`로 `$page.url.pathname + $page.url.search`를 전달하고, 라우트 컴포넌트가 mount 된 뒤에 복원이 실행됩니다.
 
 ## 공개 API
 
@@ -214,6 +343,39 @@ function ProductList() {
 - `useVirtualScrollRestore()`
 
 `useVirtualScrollRestore()`는 `containerId`, `virtualizer`, optional `scrollKey`, `invalidateOnCountChange`를 받습니다.
+
+### `@sukooru/vue`
+
+- `createSukooruPlugin(options?)`
+- `SUKOORU_KEY`
+- `useSukooru()`
+- `useScrollRestore()`
+- `useVirtualScrollRestore()`
+
+### `@sukooru/next`
+
+- `SukooruProvider`
+- `useSukooru()` (`@sukooru/react`에서 재내보내기)
+- `useScrollRestore()`
+- `useVirtualScrollRestore()`
+- `withSukooruRestore(options?)` — 페이지/레이아웃 수준 복원용 HOC
+
+### `@sukooru/nuxt`
+
+- `createSukooruNuxtPlugin(options?)`
+- `useSukooru()`
+- `useScrollRestore()`
+- `useVirtualScrollRestore()`
+
+### `@sukooru/svelte`
+
+- `createSukooruProvider(options?)`
+- `getSukooruContext()` / `setSukooruContext(instance)`
+- `SUKOORU_CONTEXT`
+- `createScrollRestore(instance)` — `{ action, status }` 반환
+- `createScrollRestoreAction(instance)` — Svelte action 직접 반환
+- `createVirtualScrollRestore(instance)` — `{ action, status }` 반환
+- `createVirtualScrollRestoreAction(instance)` — Svelte action 직접 반환
 
 ## 개발
 
