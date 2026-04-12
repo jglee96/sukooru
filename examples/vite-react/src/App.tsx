@@ -104,6 +104,7 @@ const ProductListPage = ({
           {products.map((product) => (
             <li key={product.id} style={{ listStyle: 'none' }}>
               <button
+                data-testid={`product-card-${product.id}`}
                 onClick={() => onSelect(product)}
                 style={{
                   width: '100%',
@@ -144,6 +145,7 @@ const ProductDetailPage = ({
     <section style={shellStyle}>
       <div style={{ maxWidth: '840px', margin: '0 auto', padding: '56px 28px' }}>
         <button
+          data-testid="back-button"
           onClick={onBack}
           style={{
             border: 'none',
@@ -241,7 +243,9 @@ export const App = () => {
         restoreDelay: 16,
       }}
     >
-      <ExampleRouter />
+      <div data-testid="react-example-app">
+        <ExampleRouter />
+      </div>
     </SukooruProvider>
   )
 }

@@ -235,6 +235,46 @@ describe('createSukooru', () => {
     vi.useRealTimers()
   })
 
+  it('복원 도중 컨테이너가 다시 등록되면 같은 키 복원을 다시 시작한다', async () => {
+    vi.useFakeTimers()
+
+    const storage = createMemoryStorageAdapter()
+    const restoreBeforeEvents: string[] = []
+    const sukooru = createSukooru({
+      storage,
+      restoreDelay: 20,
+      waitForDomReady: false,
+    })
+
+    const initialHandle = sukooru.registerContainer(window, 'window')
+    setWindowScroll(0, 540)
+    await sukooru.save('/products')
+
+    initialHandle.unregister()
+    setWindowScroll(0, 0)
+
+    sukooru.on('restore:before', ({ key }) => {
+      restoreBeforeEvents.push(key)
+    })
+
+    const firstRestore = sukooru.restore('/products')
+
+    const mountedHandle = sukooru.registerContainer(window, 'window')
+    const secondRestore = sukooru.restore('/products')
+
+    vi.advanceTimersByTime(20)
+    await Promise.resolve()
+    await Promise.resolve()
+
+    await expect(firstRestore).resolves.toBe('idle')
+    await expect(secondRestore).resolves.toBe('restored')
+    expect(restoreBeforeEvents).toEqual(['/products', '/products'])
+    expect(window.scrollY).toBe(540)
+
+    mountedHandle.unregister()
+    vi.useRealTimers()
+  })
+
   it('clear와 clearAll이 저장 항목을 정리한다', async () => {
     const sukooru = createSukooru({
       storage: createMemoryStorageAdapter(),

@@ -5,10 +5,12 @@ type RegisteredContainer = {
 
 export class ContainerRegistry {
   private readonly containers = new Map<string, RegisteredContainer>()
+  private revision = 0
 
   register(element: Element | Window, id: string): symbol {
     const token = Symbol(id)
     this.containers.set(id, { element, token })
+    this.revision += 1
     return token
   }
 
@@ -23,6 +25,7 @@ export class ContainerRegistry {
     }
 
     this.containers.delete(id)
+    this.revision += 1
   }
 
   find(id: string): Element | Window | undefined {
@@ -35,5 +38,8 @@ export class ContainerRegistry {
       element,
     }))
   }
-}
 
+  getRevision(): number {
+    return this.revision
+  }
+}

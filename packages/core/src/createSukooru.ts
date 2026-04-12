@@ -100,6 +100,7 @@ export const createSukooru = <T = unknown>(
   let activeRestore:
     | {
         key: ScrollKey
+        containerRevision: number
         controller: AbortController
         promise: Promise<ScrollRestoreStatus>
       }
@@ -221,7 +222,12 @@ export const createSukooru = <T = unknown>(
       return 'idle'
     }
 
-    if (activeRestore?.key === resolvedKey) {
+    const currentContainerRevision = containerRegistry.getRevision()
+
+    if (
+      activeRestore?.key === resolvedKey &&
+      activeRestore.containerRevision === currentContainerRevision
+    ) {
       return activeRestore.promise
     }
 
@@ -270,6 +276,7 @@ export const createSukooru = <T = unknown>(
 
     activeRestore = {
       key: resolvedKey,
+      containerRevision: currentContainerRevision,
       controller,
       promise: restorePromise,
     }
