@@ -2,7 +2,7 @@
   "name": "@sukooru/next",
   "version": "0.1.0",
   "type": "module",
-  "description": "Sukooru Next.js 어댑터 골격",
+  "description": "Sukooru Next.js 어댑터",
   "main": "./dist/index.cjs",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -16,8 +16,18 @@
   "files": [
     "dist"
   ],
+  "dependencies": {
+    "@sukooru/core": "workspace:*",
+    "@sukooru/react": "workspace:*"
+  },
+  "peerDependencies": {
+    "next": ">=15.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
   "scripts": {
     "build": "tsup",
+    "test": "vitest run --config vitest.config.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }

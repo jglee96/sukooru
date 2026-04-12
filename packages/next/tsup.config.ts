@@ -8,5 +8,5 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   target: 'es2019',
+  external: ['next', 'react', 'react-dom'],
 })
-
