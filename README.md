@@ -20,6 +20,32 @@
 - `@sukooru/nuxt`: 패키지 골격만 제공
 - `@sukooru/svelte`: 패키지 골격만 제공
 
+## Feature TODO List
+
+### 완료된 기능
+
+- [x] `@sukooru/core` 기본 저장/복원 API
+- [x] `sessionStorage` 기반 저장소와 테스트용 메모리 저장소
+- [x] TTL 및 최대 저장 개수 관리
+- [x] `popstate` 기반 브라우저 뒤로가기 복원
+- [x] `pushState`/`replaceState` 이후 현재 키 추적
+- [x] 커스텀 `ScrollStateHandler` 기반 상태 복원
+- [x] `@sukooru/react`의 `SukooruProvider`
+- [x] `@sukooru/react`의 `useScrollRestore`
+- [x] React `StrictMode`에서 복원 중 중복 저장 방지
+- [x] React, Vanilla 실행 예제
+
+### 해야 할 기능
+
+- [ ] 브라우저 뒤로가기 복원을 고정하는 E2E 테스트 추가
+- [ ] `useVirtualScrollRestore` 실사용 예제 추가
+- [ ] infinite scroll 예제와 문서 보강
+- [ ] `@sukooru/vue` 실제 어댑터 구현
+- [ ] `@sukooru/next` 실제 어댑터 구현
+- [ ] `@sukooru/nuxt` 실제 어댑터 구현
+- [ ] `@sukooru/svelte` 실제 어댑터 구현
+- [ ] 라우터별 연동 가이드 정리
+
 ## 패키지 구조
 
 ```text
