@@ -1,3 +1,4 @@
+---
 "@sukooru/core": patch
 "@sukooru/react": patch
 "@sukooru/vue": patch
