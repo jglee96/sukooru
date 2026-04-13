@@ -8,6 +8,14 @@ Nuxt bindings for history-aware scroll restoration.
 npm install @sukooru/nuxt
 ```
 
+## Agent Skill
+
+```bash
+npx skills add https://github.com/jglee96/sukooru --skill sukooru-integration
+```
+
+Use the repo skill when you want an AI coding agent to choose the right Sukooru package and wire full-window or element restoration correctly.
+
 ## Set Up Once
 
 ```ts

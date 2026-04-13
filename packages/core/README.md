@@ -8,6 +8,14 @@ Framework-agnostic scroll restoration core for browser apps.
 npm install @sukooru/core
 ```
 
+## Agent Skill
+
+```bash
+npx skills add https://github.com/jglee96/sukooru --skill sukooru-integration
+```
+
+Use the repo skill when you want an AI coding agent to choose the right Sukooru package and wire full-window or element restoration correctly.
+
 ## When To Use This Package
 
 Use `@sukooru/core` when you want full control over routing integration in a vanilla app or you are building your own adapter on top of Sukooru.

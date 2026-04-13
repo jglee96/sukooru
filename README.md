@@ -29,6 +29,16 @@ Sukooru는 브라우저 앱을 위한 history-aware scroll restoration 라이브
 - [Vite React demo](./examples/vite-react) - 전체 window 스크롤, 특정 element 스크롤, virtual list, infinite list 복원 패턴
 - [Vanilla demo](./examples/vanilla) - `@sukooru/core`를 직접 연결하는 수동 라우팅 예제
 
+## Agent Skill
+
+에이전트가 Sukooru를 올바르게 통합하도록 레포 스킬을 함께 제공합니다.
+
+```bash
+npx skills add https://github.com/jglee96/sukooru --skill sukooru-integration
+```
+
+스킬은 [skills/sukooru-integration](./skills/sukooru-integration) 에 있으며, 프레임워크별 패키지 선택, 전체 window 복원, 특정 element 복원, pinned `scrollKey`, stateful list 복원 패턴을 안내합니다.
+
 ## 완료된 기능
 
 - `@sukooru/core` save/restore API

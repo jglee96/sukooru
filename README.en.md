@@ -29,6 +29,16 @@ Sukooru is a history-aware scroll restoration library for browser apps. It store
 - [Vite React demo](./examples/vite-react) - full-window, specific-element, virtual-list, and infinite-list restoration
 - [Vanilla demo](./examples/vanilla) - `@sukooru/core` with manual route integration
 
+## Agent Skill
+
+Install the repo skill for agent-assisted integration:
+
+```bash
+npx skills add https://github.com/jglee96/sukooru --skill sukooru-integration
+```
+
+The skill lives in [skills/sukooru-integration](./skills/sukooru-integration) and teaches agents how to pick the right Sukooru package, wire full-window or element restoration, and handle pinned `scrollKey` or stateful list restore flows.
+
 ## Completed Features
 
 - `@sukooru/core` save/restore API

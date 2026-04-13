@@ -1,0 +1,4 @@
+interface:
+  display_name: "Sukooru Integration"
+  short_description: "Integrate Sukooru scroll restoration"
+  default_prompt: "Use $sukooru-integration to add Sukooru scroll restoration to this app."
