@@ -5,445 +5,52 @@
 [![CI](https://github.com/jglee96/sukooru/actions/workflows/ci.yml/badge.svg)](https://github.com/jglee96/sukooru/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/jglee96/sukooru/graph/badge.svg)](https://codecov.io/gh/jglee96/sukooru)
 
-If you've ever clicked back to a page only to land at the top instead of where you left off, that's the problem Sukooru fixes. It connects to the browser History API to remember scroll positions and restore them when a user navigates back. It has no dependency on any specific framework.
-
-## Core idea
-
-Scroll position is state that belongs to a URL.
-
-You declare what should be restored. Sukooru handles when to save and when to restore. That separation matters because the moment you start thinking about `save()` and `restore()` call timing yourself, that complexity leaks out of the library and into your application. Sukooru keeps that timing logic inside the framework adapters and the core lifecycle.
-
-## What's implemented
-
-- `@sukooru/core`: complete
-- `@sukooru/react`: complete
-- `@sukooru/vue`: complete
-- `@sukooru/next`: complete
-- `@sukooru/nuxt`: complete
-- `@sukooru/svelte`: complete
-
-## Feature TODO List
-
-### Done
-
-- [x] `@sukooru/core` basic save/restore API
-- [x] `sessionStorage`-based store and in-memory store for testing
-- [x] TTL and max-entry management
-- [x] `popstate`-based back-navigation restore
-- [x] Current key tracking after `pushState`/`replaceState`
-- [x] Custom `ScrollStateHandler` for state restoration
-- [x] `SukooruProvider` for `@sukooru/react`
-- [x] `useScrollRestore` for `@sukooru/react`
-- [x] Playwright E2E coverage for back-navigation restore
-- [x] Duplicate-save prevention during restoration in React `StrictMode`
-- [x] Real React example for `useVirtualScrollRestore`
-- [x] Infinite scroll example and docs
-- [x] Router integration guides
-- [x] React and Vanilla runnable examples
-
-### Planned
-
-- [x] Actual adapter implementation for `@sukooru/vue`
-- [x] Actual adapter implementation for `@sukooru/next`
-- [x] Actual adapter implementation for `@sukooru/nuxt`
-- [x] Actual adapter implementation for `@sukooru/svelte`
-
-## Package structure
-
-```text
-packages/
-  core/
-  react/
-  vue/
-  next/
-  nuxt/
-  svelte/
-examples/
-  vanilla/
-  vite-react/
-```
-
-## Quick start
-
-### React
-
-Wrap your app in `SukooruProvider` and attach `useScrollRestore` to any container that needs position tracking. You don't call `save()` or `restore()` directly. The hook takes care of registering the container, restoring on mount, and saving on unmount.
-
-```tsx
-import { SukooruProvider, useScrollRestore } from '@sukooru/react'
-
-function ProductListPage() {
-  const { ref, status } = useScrollRestore({
-    containerId: 'product-list',
-  })
-
-  return (
-    <main ref={ref} style={{ height: '100vh', overflowY: 'auto' }}>
-      {status === 'restoring' ? 'Restoring...' : null}
-      {/* product list */}
-    </main>
-  )
-}
-
-export function App() {
-  return (
-    <SukooruProvider>
-      <ProductListPage />
-    </SukooruProvider>
-  )
-}
-```
-
-### Vue
-
-Register `createSukooruPlugin` in your Vue app and use `useScrollRestore` inside any component.
-
-```ts
-// main.ts
-import { createApp } from 'vue'
-import { createSukooruPlugin } from '@sukooru/vue'
-import App from './App.vue'
-
-createApp(App).use(createSukooruPlugin()).mount('#app')
-```
-
-```vue
-<!-- ProductList.vue -->
-<script setup lang="ts">
-import { useScrollRestore } from '@sukooru/vue'
-
-const { el, status } = useScrollRestore({ containerId: 'product-list' })
-</script>
-
-<template>
-  <div ref="el" style="height: 100vh; overflow-y: auto">
-    <span v-if="status === 'restoring'">Restoring...</span>
-    <!-- product list -->
-  </div>
-</template>
-```
-
-### Next.js (App Router)
-
-Place `SukooruProvider` inside a `'use client'` boundary. It automatically derives the scroll key from `usePathname` and `useSearchParams`.
-
-```tsx
-// app/layout.tsx
-import { SukooruProvider } from '@sukooru/next'
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <html>
-      <body>
-        <SukooruProvider>{children}</SukooruProvider>
-      </body>
-    </html>
-  )
-}
-```
-
-```tsx
-// app/products/page.tsx
-'use client'
-import { useScrollRestore } from '@sukooru/next'
-
-export default function ProductsPage() {
-  const { ref, status } = useScrollRestore({ containerId: 'product-list' })
-
-  return (
-    <main ref={ref} style={{ height: '100vh', overflowY: 'auto' }}>
-      {status === 'restoring' ? 'Restoring...' : null}
-      {/* product list */}
-    </main>
-  )
-}
-```
-
-### Nuxt
-
-Register the plugin via `createSukooruNuxtPlugin`. It automatically uses `currentRoute.value.fullPath` as the scroll key.
-
-```ts
-// plugins/sukooru.client.ts
-import { createSukooruNuxtPlugin } from '@sukooru/nuxt'
-
-export default createSukooruNuxtPlugin()
-```
-
-```vue
-<!-- pages/products.vue -->
-<script setup lang="ts">
-import { useScrollRestore } from '@sukooru/nuxt'
-
-const { el, status } = useScrollRestore({ containerId: 'product-list' })
-</script>
-
-<template>
-  <div ref="el" style="height: 100vh; overflow-y: auto">
-    <span v-if="status === 'restoring'">Restoring...</span>
-    <!-- product list -->
-  </div>
-</template>
-```
-
-### SvelteKit
-
-Create the provider in a browser-only module (e.g., a layout component) and use `createScrollRestoreAction` in each component.
-
-```svelte
-<!-- +layout.svelte -->
-<script lang="ts">
-  import { browser } from '$app/environment'
-  import { createSukooruProvider, setSukooruContext } from '@sukooru/svelte'
-  import { page } from '$app/stores'
-
-  if (browser) {
-    const provider = createSukooruProvider({
-      getKey: () => $page.url.pathname + $page.url.search,
-    })
-    setSukooruContext(provider.instance)
-  }
-</script>
-
-<slot />
-```
-
-```svelte
-<!-- ProductList.svelte -->
-<script lang="ts">
-  import { getSukooruContext, createScrollRestore } from '@sukooru/svelte'
-
-  const sukooru = getSukooruContext()
-  const { action, status } = createScrollRestore(sukooru)
-</script>
-
-<div use:action={{ containerId: 'product-list' }} style="height: 100vh; overflow-y: auto">
-  {#if $status === 'restoring'}Restoring...{/if}
-  <!-- product list -->
-</div>
-```
-
-### Vanilla
-
-In a vanilla environment you use the imperative API, but a single instance still owns the store and the restore logic.
-
-```ts
-import { createSukooru } from '@sukooru/core'
-
-const sukooru = createSukooru()
-const container = document.querySelector('#product-list')
-
-if (container) {
-  const handle = sukooru.registerContainer(container, 'product-list')
-  const unmount = sukooru.mount()
-
-  void sukooru.restore()
-
-  window.addEventListener('beforeunload', () => {
-    void sukooru.save()
-    handle.unregister()
-    unmount()
-  })
-}
-```
-
-## React example modes
-
-The React example app now demonstrates three restore patterns from the same dev server.
-
-- `/products`: full window scroll restoration
-- `/virtual`: virtual-list restoration via `useVirtualScrollRestore`
-- `/infinite`: infinite-scroll restoration via `useScrollRestore` + `ScrollStateHandler`
-
-## Virtual scroll restoration
-
-With a virtualized list, saving only `scrollTop` is not always enough because the DOM only contains the currently visible rows. `useVirtualScrollRestore` restores both the virtualizer offset and the visible range metadata.
-
-If your list route pushes to a detail route before unmounting, pass an explicit `scrollKey` so the saved entry stays attached to the list URL.
-
-```tsx
-import { useVirtualScrollRestore } from '@sukooru/react'
-
-function VirtualProductList({ rowVirtualizer }) {
-  const { ref, status } = useVirtualScrollRestore({
-    containerId: 'virtual-list',
-    scrollKey: '/products',
-    virtualizer: rowVirtualizer,
-  })
-
-  return (
-    <div ref={ref} style={{ height: '80vh', overflowY: 'auto' }}>
-      {status === 'restoring' ? 'Restoring...' : null}
-      {/* virtual rows */}
-    </div>
-  )
-}
-```
-
-## Infinite scroll restoration
-
-For a plain scroll container, `scrollTop` and `scrollLeft` are enough. Infinite scroll needs more than that. Sukooru restores custom state first and then applies the scroll position, which fits the pattern where data must exist before the final offset can be applied.
-
-```tsx
-import { useMemo } from 'react'
-import { useScrollRestore } from '@sukooru/react'
-import type { ScrollStateHandler } from '@sukooru/core'
-
-type InfiniteState = {
-  loadedPageCount: number
-}
-
-function ProductList() {
-  const stateHandler = useMemo<ScrollStateHandler<InfiniteState>>(
-    () => ({
-      captureState: () => ({
-        loadedPageCount: pageCountRef.current,
-      }),
-      applyState: async ({ loadedPageCount }) => {
-        while (pageCountRef.current < loadedPageCount) {
-          await loadNextPage()
-        }
-      },
-    }),
-    [],
-  )
-
-  const { ref } = useScrollRestore({
-    containerId: 'infinite-list',
-    scrollKey: '/products',
-    stateHandler,
-  })
-
-  return <div ref={ref} />
-}
-```
-
-## Router integration guide
-
-Each first-party adapter handles key derivation automatically. The patterns below apply when you need to customise the key or integrate a router not covered by a first-party adapter.
-
-- React Router or any client-side router: keep `SukooruProvider` at the app root and derive the key from `pathname + search`. If the list unmounts after a detail `pushState`, pin the list route with an explicit `scrollKey`.
-- Next.js App Router: `@sukooru/next`'s `SukooruProvider` automatically derives the key from `usePathname()` and `useSearchParams()`. For custom scroll containers, pass the list route as `scrollKey`.
-- Vue Router or Nuxt: `@sukooru/vue` and `@sukooru/nuxt` use `currentRoute.value.fullPath` as the default key. Container registration is handled inside composables tied to `onMounted` / `onUnmounted`.
-- SvelteKit: `@sukooru/svelte` uses the Svelte action pattern. Pass a custom `getKey` to `createSukooruProvider` using `$page.url.pathname + $page.url.search`, and restore only after the route component mounts.
-
-## Public API
-
-### `@sukooru/core`
-
-- `createSukooru(options?)`
-- `sessionStorageAdapter`
-- `createMemoryStorageAdapter()`
-- `ScrollEntry`
-- `ScrollStateHandler`
-- `ScrollRestoreStatus`
-
-### `@sukooru/react`
-
-- `SukooruProvider`
-- `useSukooru()`
-- `useScrollRestore()`
-- `useVirtualScrollRestore()`
-
-`useVirtualScrollRestore()` accepts `containerId`, `virtualizer`, optional `scrollKey`, and `invalidateOnCountChange`.
-
-### `@sukooru/vue`
-
-- `createSukooruPlugin(options?)`
-- `SUKOORU_KEY`
-- `useSukooru()`
-- `useScrollRestore()`
-- `useVirtualScrollRestore()`
-
-### `@sukooru/next`
-
-- `SukooruProvider`
-- `useSukooru()` (re-exported from `@sukooru/react`)
-- `useScrollRestore()`
-- `useVirtualScrollRestore()`
-- `withSukooruRestore(options?)` — HOC for page/layout-level restore
-
-### `@sukooru/nuxt`
-
-- `createSukooruNuxtPlugin(options?)`
-- `useSukooru()`
-- `useScrollRestore()`
-- `useVirtualScrollRestore()`
-
-### `@sukooru/svelte`
-
-- `createSukooruProvider(options?)`
-- `getSukooruContext()` / `setSukooruContext(instance)`
-- `SUKOORU_CONTEXT`
-- `createScrollRestore(instance)` — returns `{ action, status }`
-- `createScrollRestoreAction(instance)` — returns the Svelte action directly
-- `createVirtualScrollRestore(instance)` — returns `{ action, status }`
-- `createVirtualScrollRestoreAction(instance)` — returns the Svelte action directly
-
-## Development
-
-Node 22 or later is recommended. A `.nvmrc` is included in this repo.
-
-```bash
-nvm use
-pnpm install
-pnpm typecheck
-pnpm test
-pnpm test:e2e
-pnpm build
-```
-
-## Running the examples
-
-### React example
-
-```bash
-nvm use
-pnpm install
-pnpm dev:example:react
-```
-
-Open `http://127.0.0.1:4173` in a browser. The example app includes `/products`, `/virtual`, and `/infinite`.
-
-Steps to verify:
-
-1. In `/products`, scroll the full window and return from a detail page.
-2. In `/virtual`, scroll the custom container and use "Open first visible card" before coming back.
-3. In `/infinite`, load more pages, enter a detail page, and come back.
-4. Confirm each mode restores the position it had before navigation.
-
-### Vanilla example
-
-```bash
-nvm use
-pnpm install
-pnpm dev:example:vanilla
-```
-
-Open `http://127.0.0.1:4174` in a browser.
-
-Steps to verify:
-
-1. Scroll down in the list.
-2. Navigate to a product detail page.
-3. Click "Back to list".
-4. Confirm the saved position is restored.
-
-## Test coverage
-
-- Core save and restore
-- TTL expiration
-- Eviction of oldest entries when the max count is exceeded
-- Fallback to default position when custom state restoration fails
-- `popstate`-based save/restore flow
-- Browser E2E coverage for back navigation via Playwright
-- React Provider mount and unmount
-- Container registration, restoration, and saving via the React hook
-- `scrollKey` passthrough for `useVirtualScrollRestore`
-- No unnecessary container re-registration when the state handler changes
+Sukooru is a history-aware scroll restoration library for browser apps. It stores scroll state by URL and restores it when users come back, so back navigation and client-side route changes can land where the user actually left off.
+
+## Core Idea
+
+- Scroll position is state that belongs to a URL.
+- Sukooru owns the save/restore timing around `popstate`, `pushState`, `replaceState`, and component mount/unmount.
+- The same model works for full-window scrolling, specific scroll containers, and virtual or infinite lists.
+
+## Choose A Package
+
+| Package | Use it when | Docs |
+| --- | --- | --- |
+| `@sukooru/core` | You want to wire Sukooru into a vanilla app or a custom router yourself | [README](./packages/core/README.md) |
+| `@sukooru/react` | You want provider + hook integration in a React app | [README](./packages/react/README.md) |
+| `@sukooru/vue` | You want plugin + composable integration in a Vue app | [README](./packages/vue/README.md) |
+| `@sukooru/next` | You want route-key integration for Next.js App Router | [README](./packages/next/README.md) |
+| `@sukooru/nuxt` | You want a route-aware plugin for Nuxt | [README](./packages/nuxt/README.md) |
+| `@sukooru/svelte` | You want context + action integration in Svelte or SvelteKit | [README](./packages/svelte/README.md) |
 
 ## Examples
 
-- Vanilla: [examples/vanilla/src/main.ts](examples/vanilla/src/main.ts)
-- React: [examples/vite-react/src/App.tsx](examples/vite-react/src/App.tsx)
-- React virtualizer helper: [examples/vite-react/src/useDemoVirtualizer.ts](examples/vite-react/src/useDemoVirtualizer.ts)
+- [Vite React demo](./examples/vite-react) - full-window, specific-element, virtual-list, and infinite-list restoration
+- [Vanilla demo](./examples/vanilla) - `@sukooru/core` with manual route integration
+
+## Agent Skill
+
+Install the repo skill for agent-assisted integration:
+
+```bash
+npx skills add https://github.com/jglee96/sukooru --skill sukooru-integration
+```
+
+The skill lives in [skills/sukooru-integration](./skills/sukooru-integration) and teaches agents how to pick the right Sukooru package, wire full-window or element restoration, and handle pinned `scrollKey` or stateful list restore flows.
+
+## Completed Features
+
+- `@sukooru/core` save/restore API
+- browser history integration for `popstate`, `pushState`, and `replaceState`
+- full-window and element-level scroll restoration
+- `sessionStorage` storage and in-memory storage adapter
+- TTL and max-entry management
+- custom `ScrollStateHandler` support for virtual and infinite lists
+- React, Vue, Next.js, Nuxt, and Svelte adapters
+- runnable React and vanilla examples
+- Playwright E2E coverage for back-navigation restore
+
+## Roadmap
+
+Upcoming work is tracked in [GitHub issues](https://github.com/jglee96/sukooru/issues). Framework-specific usage details and API examples now live in each package README.
