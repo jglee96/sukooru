@@ -13,6 +13,7 @@ If a merged PR includes a `.changeset/*.md` file:
 4. The workflow runs `pnpm release`.
 5. `changeset publish` publishes any unpublished package versions to npm and creates git tags.
 6. The workflow pushes the release commit and tags.
+7. The workflow creates a GitHub Release for each new tag.
 
 If a `main` push has no pending changesets, the workflow still runs `pnpm release` so a failed publish can be retried without creating a new version bump.
 
@@ -48,6 +49,11 @@ The process is identical. The only difference is the version type you choose in 
 - Branch protection must not block the workflow bot from writing the release commit.
 
 If branch protection blocks direct pushes from `GITHUB_TOKEN`, either allow GitHub Actions to bypass the restriction or switch the workflow to a PAT-based push.
+
+## GitHub Releases vs GitHub Packages
+
+- npm packages are published to the npm registry, not GitHub Packages.
+- GitHub Releases are created automatically from the package tags generated during publish.
 
 ## Local commands
 

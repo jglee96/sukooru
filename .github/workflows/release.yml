@@ -38,6 +38,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Capture existing tags
+        run: git tag --list > "$RUNNER_TEMP/tags-before.txt"
+
       - name: Configure git author
         run: |
           git config user.name "github-actions[bot]"
@@ -78,9 +81,50 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Detect new release tags
+        id: release_tags
+        run: |
+          git tag --list > "$RUNNER_TEMP/tags-after.txt"
+          new_tags="$(grep -Fxv -f "$RUNNER_TEMP/tags-before.txt" "$RUNNER_TEMP/tags-after.txt" || true)"
+
+          if [ -n "$new_tags" ]; then
+            echo "has_new_tags=true" >> "$GITHUB_OUTPUT"
+            {
+              echo "tags<<EOF"
+              printf '%s\n' "$new_tags"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            echo "has_new_tags=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Push release commit
         if: steps.changesets.outputs.has_changesets == 'true'
         run: git push origin HEAD:main
 
       - name: Push tags
         run: git push origin --tags
+
+      - name: Create GitHub releases
+        if: steps.release_tags.outputs.has_new_tags == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          while IFS= read -r tag; do
+            if [ -z "$tag" ]; then
+              continue
+            fi
+
+            if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "GitHub release already exists for $tag"
+              continue
+            fi
+
+            gh release create "$tag" \
+              --repo "$GITHUB_REPOSITORY" \
+              --verify-tag \
+              --generate-notes \
+              --title "$tag"
+          done <<'EOF'
+          ${{ steps.release_tags.outputs.tags }}
+          EOF
