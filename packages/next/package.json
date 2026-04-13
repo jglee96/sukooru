@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "type": "module",
   "license": "MIT",
-  "description": "Sukooru Next.js 어댑터",
+  "description": "Next.js bindings for Sukooru scroll restoration.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/jglee96/sukooru.git",
