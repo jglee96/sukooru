@@ -59,10 +59,19 @@ If branch protection blocks direct pushes from `GITHUB_TOKEN`, either allow GitH
 
 ```bash
 pnpm changeset
+pnpm verify:sizes
+pnpm verify:packages
 pnpm version-packages
 pnpm release
 ```
 
 - `pnpm changeset`: create the release intent file for a PR
+- `pnpm verify:sizes`: confirm published packages exclude sourcemaps and stay within size budgets
+- `pnpm verify:packages`: run export checks and package-size verification together
 - `pnpm version-packages`: apply pending version bumps locally
 - `pnpm release`: build packages and publish unpublished versions
+
+## Package size policy
+
+- Treat npm `packed size`, `unpacked size`, and application runtime bundle size as separate measurements.
+- Release builds should optimize the published package footprint first. Runtime bundle size should be checked against representative consumer imports instead of npm unpacked size alone.

@@ -29,6 +29,11 @@ Sukooru는 브라우저 앱을 위한 history-aware scroll restoration 라이브
 - [Vite React demo](./examples/vite-react) - 전체 window 스크롤, 특정 element 스크롤, virtual list, infinite list 복원 패턴
 - [Vanilla demo](./examples/vanilla) - `@sukooru/core`를 직접 연결하는 수동 라우팅 예제
 
+## 패키지 크기 기준
+
+- npm 패키지 크기는 `packed size`, `unpacked size`, 실제 앱이 가져가는 runtime bundle size를 구분해서 봅니다.
+- Sukooru 릴리스 패키지는 sourcemap을 포함하지 않으며, `pnpm verify:sizes`로 publish 산출물 크기와 포함 파일을 검증합니다.
+
 ## Agent Skill
 
 에이전트가 Sukooru를 올바르게 통합하도록 레포 스킬을 함께 제공합니다.
