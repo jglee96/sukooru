@@ -112,6 +112,8 @@ Override `scrollKey` when multiple Nuxt routes should restore into the same list
 ## Notes
 
 - The default route key is `route.fullPath`.
+- `@sukooru/nuxt` is maintained against Nuxt 3 and newer.
+- If `sessionStorage` is blocked, Sukooru falls back to in-memory storage for the current tab session.
 - If native browser restoration conflicts with your app, set `window.history.scrollRestoration = 'manual'` once on the client.
 
 ## See Also

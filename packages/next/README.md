@@ -145,6 +145,8 @@ Override `scrollKey` when intercepted routes, nested details, or shared layouts 
 ## Notes
 
 - The default route key is `pathname + searchParams`.
+- `@sukooru/next` is maintained against Next.js 15 and React 19.
+- If `sessionStorage` is blocked, Sukooru falls back to in-memory storage for the current tab session.
 - If native browser restoration conflicts with your app, set `window.history.scrollRestoration = 'manual'` once in client code.
 
 ## See Also

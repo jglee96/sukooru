@@ -129,6 +129,7 @@ export const mountInfiniteProducts = async () => {
 ## Key Exports
 
 - `createSukooru`
+- `createSessionStorageAdapter`
 - `sessionStorageAdapter`
 - `createMemoryStorageAdapter`
 - `createDefaultSerializer`
@@ -136,6 +137,7 @@ export const mountInfiniteProducts = async () => {
 
 ## Notes
 
+- `sessionStorageAdapter` falls back to in-memory storage when the browser blocks storage access for the current page session.
 - Set `window.history.scrollRestoration = 'manual'` once on the client if the browser's native restoration conflicts with your app.
 - Use a stable `scrollKey` such as `/products` when you want the saved position to belong to a list route instead of the current detail URL.
 

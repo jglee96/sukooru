@@ -33,6 +33,12 @@ jobs:
       - name: Test with coverage
         run: pnpm test -- --coverage
 
+      - name: Build packages and verify publish artifacts
+        run: pnpm build
+
+      - name: End-to-end tests
+        run: pnpm test:e2e
+
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
         with:

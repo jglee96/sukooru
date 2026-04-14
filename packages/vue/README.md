@@ -132,6 +132,8 @@ Use `stateHandler` when list data must be recreated before Sukooru reapplies scr
 ## Notes
 
 - Use a fixed `scrollKey` such as `/products` when the saved position should stay tied to the list route.
+- `@sukooru/vue` is maintained against Vue 3.3 and newer.
+- If `sessionStorage` is blocked, Sukooru falls back to in-memory storage for the current tab session.
 - If native browser restoration conflicts with your router, set `window.history.scrollRestoration = 'manual'` once on the client.
 
 ## See Also

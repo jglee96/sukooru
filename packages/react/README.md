@@ -115,6 +115,8 @@ Use `stateHandler` when you need data, pagination, or other UI state restored be
 ## Notes
 
 - Use a fixed `scrollKey` such as `/products` when the list view and detail view should share one restore bucket.
+- `@sukooru/react` is maintained against React 19.
+- If `sessionStorage` is blocked, Sukooru falls back to in-memory storage for the current tab session.
 - If native browser restoration conflicts with your router, set `window.history.scrollRestoration = 'manual'` once on the client.
 
 ## See Also

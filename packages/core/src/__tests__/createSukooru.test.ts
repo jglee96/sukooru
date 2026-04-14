@@ -199,6 +199,68 @@ describe('createSukooru', () => {
     cleanup()
   })
 
+  it('여러 인스턴스가 마운트돼도 history patch를 안전하게 공유한다', () => {
+    const nativePushState = window.history.pushState
+    const nativeReplaceState = window.history.replaceState
+    const first = createSukooru({
+      storage: createMemoryStorageAdapter(),
+      getKey: () => '/first',
+      waitForDomReady: false,
+    })
+    const second = createSukooru({
+      storage: createMemoryStorageAdapter(),
+      getKey: () => '/second',
+      waitForDomReady: false,
+    })
+
+    const cleanupFirst = first.mount()
+    const patchedPushState = window.history.pushState
+    const patchedReplaceState = window.history.replaceState
+
+    const cleanupSecond = second.mount()
+
+    expect(window.history.pushState).toBe(patchedPushState)
+    expect(window.history.replaceState).toBe(patchedReplaceState)
+
+    cleanupFirst()
+
+    expect(window.history.pushState).toBe(patchedPushState)
+    expect(window.history.replaceState).toBe(patchedReplaceState)
+
+    cleanupSecond()
+
+    expect(window.history.pushState).toBe(nativePushState)
+    expect(window.history.replaceState).toBe(nativeReplaceState)
+  })
+
+  it('cleanup 시점에 더 최신의 history patch가 있으면 덮어쓰지 않는다', () => {
+    const nativePushState = window.history.pushState
+    const nativeReplaceState = window.history.replaceState
+    const sukooru = createSukooru({
+      storage: createMemoryStorageAdapter(),
+      waitForDomReady: false,
+    })
+    const cleanup = sukooru.mount()
+
+    const externalPushState = ((...args: Parameters<History['pushState']>) => {
+      nativePushState.apply(window.history, args)
+    }) as History['pushState']
+    const externalReplaceState = ((...args: Parameters<History['replaceState']>) => {
+      nativeReplaceState.apply(window.history, args)
+    }) as History['replaceState']
+
+    window.history.pushState = externalPushState
+    window.history.replaceState = externalReplaceState
+
+    cleanup()
+
+    expect(window.history.pushState).toBe(externalPushState)
+    expect(window.history.replaceState).toBe(externalReplaceState)
+
+    window.history.pushState = nativePushState
+    window.history.replaceState = nativeReplaceState
+  })
+
   it('같은 키에 대한 중복 복원 요청은 하나의 작업으로 합친다', async () => {
     vi.useFakeTimers()
 

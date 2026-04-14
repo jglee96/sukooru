@@ -1,5 +1,6 @@
 import { ContainerRegistry } from './containerRegistry'
 import { TypedEventEmitter } from './events'
+import { subscribeToBrowserHistory } from './historyPatchManager'
 import { ScrollStateRegistry } from './scrollStateRegistry'
 import { EntryManager } from './storage/entryManager'
 import { createDefaultSerializer } from './storage/serializer'
@@ -327,43 +328,28 @@ export const createSukooru = <T = unknown>(
     }
 
     currentTrackedKey = getKey()
-    const originalPushState = window.history.pushState.bind(window.history)
-    const originalReplaceState = window.history.replaceState.bind(window.history)
+    const unsubscribeHistory = subscribeToBrowserHistory({
+      syncCurrentKey: () => {
+        currentTrackedKey = getKey()
+      },
+      onPopState: async () => {
+        const leavingKey = currentTrackedKey
+        const arrivingKey = getKey()
 
-    window.history.pushState = (...args) => {
-      originalPushState(...args)
-      currentTrackedKey = getKey()
-    }
+        try {
+          await save(leavingKey)
+        } catch {
+          // 저장 실패가 복원까지 막으면 사용자가 더 큰 어긋남을 겪게 된다.
+        }
 
-    window.history.replaceState = (...args) => {
-      originalReplaceState(...args)
-      currentTrackedKey = getKey()
-    }
-
-    const handlePopState = async (): Promise<void> => {
-      const leavingKey = currentTrackedKey
-      const arrivingKey = getKey()
-
-      try {
-        await save(leavingKey)
-      } catch {
-        // 저장 실패가 복원까지 막으면 사용자가 더 큰 어긋남을 겪게 된다.
-      }
-
-      await restore(arrivingKey)
-      currentTrackedKey = arrivingKey
-    }
-
-    window.addEventListener('popstate', handlePopState)
+        await restore(arrivingKey)
+        currentTrackedKey = arrivingKey
+      },
+    })
     emitter.emit('mount', {})
 
     mountedCleanup = () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('popstate', handlePopState)
-        window.history.pushState = originalPushState
-        window.history.replaceState = originalReplaceState
-      }
-
+      unsubscribeHistory()
       activeRestore?.controller.abort()
       activeRestore = null
       mountedCleanup = null
