@@ -29,6 +29,11 @@ Sukooru is a history-aware scroll restoration library for browser apps. It store
 - [Vite React demo](./examples/vite-react) - full-window, specific-element, virtual-list, and infinite-list restoration
 - [Vanilla demo](./examples/vanilla) - `@sukooru/core` with manual route integration
 
+## Package Size Policy
+
+- Treat npm `packed size`, `unpacked size`, and application runtime bundle size as different metrics.
+- Sukooru release packages do not publish sourcemaps, and `pnpm verify:sizes` checks the published file list and package-size budgets.
+
 ## Agent Skill
 
 Install the repo skill for agent-assisted integration:

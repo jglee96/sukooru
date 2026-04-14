@@ -17,7 +17,7 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "build": "turbo run build && node scripts/verify-package-exports.mjs",
+    "build": "turbo run build && pnpm verify:packages",
     "changeset": "changeset",
     "dev:example:react": "pnpm --filter @sukooru/example-vite-react dev",
     "dev:example:vanilla": "pnpm --filter @sukooru/example-vanilla dev",
@@ -28,6 +28,8 @@
     "test:e2e": "playwright test",
     "typecheck": "turbo run typecheck",
     "verify:exports": "node scripts/verify-package-exports.mjs",
+    "verify:packages": "pnpm verify:exports && pnpm verify:sizes",
+    "verify:sizes": "node scripts/verify-package-distribution.mjs",
     "version-packages": "changeset version"
   },
   "devDependencies": {
