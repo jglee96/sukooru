@@ -40,6 +40,7 @@ Sukooru is a history-aware scroll restoration library for browser apps. It store
 | Vue | Vue 3.3+ |
 | Nuxt | Nuxt 3+ |
 | Svelte | Svelte 4 or 5 |
+| Storage backends | Any sync or async adapter that implements the `StorageAdapter` contract |
 | Node for repo tooling | Node 22.18+ in this workspace |
 
 Firefox and Safari are target browsers, but they are not yet CI-gated. Treat them as intended support rather than continuously verified support until browser-matrix E2E is added.
@@ -48,6 +49,7 @@ Firefox and Safari are target browsers, but they are not yet CI-gated. Treat the
 
 - If the browser blocks `sessionStorage`, Sukooru falls back to in-memory storage for the current tab session.
 - That fallback keeps save/restore working in restricted environments, but the stored state will not survive a full reload or a new tab.
+- Custom storage adapters may be synchronous or asynchronous, so wrappers around `localStorage`, cookies, IndexedDB, or remote caches can be plugged in from user code.
 - If native browser restoration conflicts with your router, set `window.history.scrollRestoration = 'manual'` once on the client.
 
 ## Package Size Policy

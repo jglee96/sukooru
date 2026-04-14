@@ -13,6 +13,7 @@ export {
 } from './storage/serializer'
 export type {
   ContainerHandle,
+  MaybePromise,
   ScrollCustomState,
   ScrollEntry,
   ScrollHooks,

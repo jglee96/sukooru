@@ -98,6 +98,7 @@ export const createSukooru = <T = unknown>(
 
   let mountedCleanup: (() => void) | null = null
   let currentTrackedKey = getKey()
+  let keysSnapshot: ScrollKey[] = []
   let activeRestore:
     | {
         key: ScrollKey
@@ -108,6 +109,10 @@ export const createSukooru = <T = unknown>(
     | null = null
 
   const resolveKey = (key?: ScrollKey): ScrollKey => key ?? getKey()
+  const refreshKeysSnapshot = async (): Promise<ScrollKey[]> => {
+    keysSnapshot = await entryManager.getAllKeys()
+    return keysSnapshot
+  }
 
   const collectPositions = (): ScrollPosition[] => {
     return containerRegistry
@@ -193,7 +198,8 @@ export const createSukooru = <T = unknown>(
     emitter.emit('save:before', { key: resolvedKey, entry })
 
     try {
-      entryManager.set(resolvedKey, entry)
+      await entryManager.set(resolvedKey, entry)
+      await refreshKeysSnapshot()
       emitter.emit('save:after', { key: resolvedKey, entry })
     } catch (error) {
       emitter.emit('save:error', { key: resolvedKey, entry, error })
@@ -203,26 +209,6 @@ export const createSukooru = <T = unknown>(
 
   const restore = async (key?: ScrollKey): Promise<ScrollRestoreStatus> => {
     const resolvedKey = resolveKey(key)
-    const entry = entryManager.get(resolvedKey)
-
-    if (!entry) {
-      emitter.emit('restore:miss', { key: resolvedKey })
-      return 'missed'
-    }
-
-    let cancelled = false
-    hooks.onBeforeRestore?.({
-      key: resolvedKey,
-      entry,
-      cancel: () => {
-        cancelled = true
-      },
-    })
-
-    if (cancelled) {
-      return 'idle'
-    }
-
     const currentContainerRevision = containerRegistry.getRevision()
 
     if (
@@ -235,9 +221,36 @@ export const createSukooru = <T = unknown>(
     activeRestore?.controller.abort()
     const controller = new AbortController()
     const restorePromise = (async (): Promise<ScrollRestoreStatus> => {
-      emitter.emit('restore:before', { key: resolvedKey, entry })
+      let entry: ScrollEntry<T> | null = null
 
       try {
+        entry = await entryManager.get(resolvedKey)
+
+        if (controller.signal.aborted) {
+          return 'idle'
+        }
+
+        if (!entry) {
+          await refreshKeysSnapshot()
+          emitter.emit('restore:miss', { key: resolvedKey })
+          return 'missed'
+        }
+
+        let cancelled = false
+        hooks.onBeforeRestore?.({
+          key: resolvedKey,
+          entry,
+          cancel: () => {
+            cancelled = true
+          },
+        })
+
+        if (cancelled || controller.signal.aborted) {
+          return 'idle'
+        }
+
+        emitter.emit('restore:before', { key: resolvedKey, entry })
+
         await delay(restoreDelay)
 
         if (waitForDomReady) {
@@ -285,14 +298,16 @@ export const createSukooru = <T = unknown>(
     return restorePromise
   }
 
-  const clear = (key?: ScrollKey): void => {
+  const clear = async (key?: ScrollKey): Promise<void> => {
     const resolvedKey = resolveKey(key)
-    entryManager.delete(resolvedKey)
+    await entryManager.delete(resolvedKey)
+    await refreshKeysSnapshot()
     emitter.emit('clear', { key: resolvedKey || null })
   }
 
-  const clearAll = (): void => {
-    entryManager.deleteAll()
+  const clearAll = async (): Promise<void> => {
+    await entryManager.deleteAll()
+    keysSnapshot = []
     emitter.emit('clear', { key: null })
   }
 
@@ -359,17 +374,22 @@ export const createSukooru = <T = unknown>(
     return mountedCleanup
   }
 
+  void refreshKeysSnapshot().catch(() => {
+    keysSnapshot = []
+  })
+
   return {
     save,
     restore,
     clear,
     clearAll,
+    getKeys: refreshKeysSnapshot,
     registerContainer,
     setScrollStateHandler,
     on: emitter.on.bind(emitter),
     mount,
     get keys() {
-      return entryManager.getAllKeys()
+      return keysSnapshot
     },
     get currentKey() {
       return getKey()

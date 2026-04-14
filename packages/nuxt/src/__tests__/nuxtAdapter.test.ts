@@ -12,6 +12,7 @@ const instance = vi.hoisted(
     restore: async () => 'idle',
     clear: () => {},
     clearAll: () => {},
+    getKeys: async () => [],
     registerContainer: () => ({ unregister: () => {} }),
     setScrollStateHandler: () => ({ unregister: () => {} }),
     on: () => () => {},

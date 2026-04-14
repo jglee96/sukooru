@@ -8,6 +8,25 @@ const setWindowScroll = (x: number, y: number): void => {
   ;(window as Window & { scrollX: number; scrollY: number }).scrollY = y
 }
 
+const createAsyncMemoryStorageAdapter = () => {
+  const store = new Map<string, string>()
+
+  return {
+    async get(key: string) {
+      return store.get(key) ?? null
+    },
+    async set(key: string, value: string) {
+      store.set(key, value)
+    },
+    async delete(key: string) {
+      store.delete(key)
+    },
+    async keys() {
+      return Array.from(store.keys())
+    },
+  }
+}
+
 describe('createSukooru', () => {
   beforeEach(() => {
     Object.defineProperty(window, 'scrollX', {
@@ -99,8 +118,31 @@ describe('createSukooru', () => {
     await sukooru.save('b')
     await sukooru.save('c')
 
+    await expect(sukooru.getKeys()).resolves.toEqual(['b', 'c'])
     expect(sukooru.keys).toEqual(['b', 'c'])
     now.mockRestore()
+  })
+
+  it('async custom storage adapter로도 저장과 복원을 처리한다', async () => {
+    const storage = createAsyncMemoryStorageAdapter()
+    const sukooru = createSukooru({
+      storage,
+      waitForDomReady: false,
+    })
+    const element = document.createElement('div')
+    element.scrollTop = 260
+    sukooru.registerContainer(element, 'product-list')
+
+    await sukooru.save('products')
+    await expect(sukooru.getKeys()).resolves.toEqual(['products'])
+
+    element.scrollTop = 0
+
+    await expect(sukooru.restore('products')).resolves.toBe('restored')
+    expect(element.scrollTop).toBe(260)
+
+    await sukooru.clear('products')
+    await expect(sukooru.getKeys()).resolves.toEqual([])
   })
 
   it('커스텀 상태 복원에 실패해도 기본 위치 복원은 유지한다', async () => {
@@ -285,9 +327,7 @@ describe('createSukooru', () => {
     const firstRestore = sukooru.restore('/products')
     const secondRestore = sukooru.restore('/products')
 
-    vi.advanceTimersByTime(20)
-    await Promise.resolve()
-    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(20)
 
     await expect(firstRestore).resolves.toBe('restored')
     await expect(secondRestore).resolves.toBe('restored')
@@ -324,13 +364,11 @@ describe('createSukooru', () => {
     const mountedHandle = sukooru.registerContainer(window, 'window')
     const secondRestore = sukooru.restore('/products')
 
-    vi.advanceTimersByTime(20)
-    await Promise.resolve()
-    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(20)
 
     await expect(firstRestore).resolves.toBe('idle')
     await expect(secondRestore).resolves.toBe('restored')
-    expect(restoreBeforeEvents).toEqual(['/products', '/products'])
+    expect(restoreBeforeEvents).toEqual(['/products'])
     expect(window.scrollY).toBe(540)
 
     mountedHandle.unregister()
@@ -347,11 +385,13 @@ describe('createSukooru', () => {
     await sukooru.save('one')
     await sukooru.save('two')
 
-    sukooru.clear('one')
+    await sukooru.clear('one')
+    await expect(sukooru.getKeys()).resolves.toEqual(['two'])
     expect(sukooru.keys).toEqual(['two'])
     expect(sukooru.currentKey).toBe('current')
 
-    sukooru.clearAll()
+    await sukooru.clearAll()
+    await expect(sukooru.getKeys()).resolves.toEqual([])
     expect(sukooru.keys).toEqual([])
   })
 })
