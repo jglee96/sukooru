@@ -11,7 +11,6 @@ export default defineConfig({
   retries: 0,
   use: {
     baseURL,
-    channel: 'chrome',
     headless: true,
     trace: 'retain-on-failure',
     viewport: {
@@ -19,6 +18,26 @@ export default defineConfig({
       height: 960,
     },
   },
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        browserName: 'chromium',
+      },
+    },
+    {
+      name: 'firefox',
+      use: {
+        browserName: 'firefox',
+      },
+    },
+    {
+      name: 'webkit',
+      use: {
+        browserName: 'webkit',
+      },
+    },
+  ],
   webServer: {
     command: `pnpm --filter @sukooru/example-vite-react dev --host ${host} --port ${port}`,
     reuseExistingServer: true,

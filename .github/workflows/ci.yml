@@ -36,6 +36,9 @@ jobs:
       - name: Build packages and verify publish artifacts
         run: pnpm build
 
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
+
       - name: End-to-end tests
         run: pnpm test:e2e
 

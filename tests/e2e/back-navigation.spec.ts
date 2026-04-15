@@ -23,6 +23,45 @@ const readSavedScrollPosition = async (
   )
 }
 
+const scrollElementToBottom = async (page: Page, testId: string) => {
+  await page.getByTestId(testId).evaluate((element) => {
+    element.scrollTop = element.scrollHeight
+    element.dispatchEvent(new Event('scroll', { bubbles: true }))
+  })
+}
+
+const findFullyVisibleInfiniteCardTestId = async (page: Page): Promise<string> => {
+  const testId = await page.locator('[data-testid^="infinite-card-"]').evaluateAll((elements) => {
+    const container = document.querySelector('[data-testid="infinite-list-container"]')
+    if (!(container instanceof HTMLElement)) {
+      return null
+    }
+
+    const containerRect = container.getBoundingClientRect()
+
+    const visibleCard = elements.find((element) => {
+      if (!(element instanceof HTMLElement)) {
+        return false
+      }
+
+      const rect = element.getBoundingClientRect()
+      return rect.top >= containerRect.top && rect.bottom <= containerRect.bottom
+    })
+
+    if (!(visibleCard instanceof HTMLElement)) {
+      return null
+    }
+
+    return visibleCard.dataset.testid ?? null
+  })
+
+  if (!testId) {
+    throw new Error('Could not find a fully visible infinite card before navigating away.')
+  }
+
+  return testId
+}
+
 test('restores the product list scroll position after back navigation', async ({ page }) => {
   await page.goto('/products')
   await expect(page.getByTestId('react-example-app')).toBeVisible()
@@ -91,6 +130,83 @@ test('restores virtual list offset after back navigation', async ({ page }) => {
         (element, scrollY) => Math.abs(Math.round(element.scrollTop) - scrollY) <= 20,
         expectedRestoredScrollY,
       ),
+    )
+    .toBe(true)
+})
+
+test('restores infinite list state and offset after back navigation', async ({ page }) => {
+  await page.goto('/infinite')
+
+  const infiniteList = page.getByTestId('infinite-list-container')
+  const infiniteCards = page.locator('[data-testid^="infinite-card-"]')
+
+  await expect(infiniteCards).toHaveCount(24)
+
+  await scrollElementToBottom(page, 'infinite-list-container')
+
+  await expect.poll(() => infiniteCards.count()).toBe(36)
+  await expect.poll(() => infiniteList.evaluate((element) => Math.round(element.scrollTop))).toBeGreaterThan(600)
+
+  const visibleCardTestId = await findFullyVisibleInfiniteCardTestId(page)
+  const visibleCardId = visibleCardTestId.replace('infinite-card-', '')
+
+  await page.getByTestId(visibleCardTestId).click()
+  await expect(page).toHaveURL(new RegExp(`/infinite/${visibleCardId}$`))
+
+  const expectedRestoredScrollY = await readSavedScrollPosition(
+    page,
+    'sukooru:1:%2Finfinite',
+    'infinite-list',
+  )
+
+  expect(expectedRestoredScrollY).not.toBeNull()
+  expect(expectedRestoredScrollY ?? 0).toBeGreaterThan(600)
+
+  await page.goBack()
+  await expect(page).toHaveURL(/\/infinite$/)
+  await expect.poll(() => infiniteCards.count()).toBe(36)
+
+  await expect
+    .poll(async () =>
+      infiniteList.evaluate(
+        (element, scrollY) => Math.abs(Math.round(element.scrollTop) - scrollY) <= 20,
+        expectedRestoredScrollY,
+      ),
+    )
+    .toBe(true)
+})
+
+test('restores the products window scroll after switching demos with pushState navigation', async ({ page }) => {
+  await page.goto('/products')
+
+  await page.evaluate(() => {
+    window.scrollTo({ top: 1_450, left: 0, behavior: 'auto' })
+  })
+
+  await expect.poll(() => page.evaluate(() => Math.round(window.scrollY))).toBeGreaterThan(1_000)
+
+  await page.getByTestId('demo-nav-virtual').click()
+  await expect(page).toHaveURL(/\/virtual$/)
+
+  const expectedRestoredScrollY = await readSavedScrollPosition(
+    page,
+    'sukooru:1:%2Fproducts',
+    'window',
+  )
+
+  expect(expectedRestoredScrollY).not.toBeNull()
+  expect(expectedRestoredScrollY ?? 0).toBeGreaterThan(200)
+
+  await page.getByTestId('demo-nav-products').click()
+  await expect(page).toHaveURL(/\/products$/)
+
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(
+          (scrollY) => Math.abs(Math.round(window.scrollY) - scrollY) <= 20,
+          expectedRestoredScrollY,
+        ),
     )
     .toBe(true)
 })
