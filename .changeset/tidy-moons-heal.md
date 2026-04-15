@@ -1,13 +1,13 @@
 ---
 '@sukooru/core': minor
-'@sukooru/react': patch
-'@sukooru/vue': patch
-'@sukooru/svelte': patch
-'@sukooru/next': patch
-'@sukooru/nuxt': patch
+'@sukooru/react': minor
+'@sukooru/vue': minor
+'@sukooru/svelte': minor
+'@sukooru/next': minor
+'@sukooru/nuxt': minor
 ---
 
 Prepare the next package release after the production-readiness work merged on top of `0.1.2`.
 
 - `@sukooru/core` adds duplicate registration guards, `hooks.onError`, and `strict` restore mode.
-- Framework packages get patch releases so their published internal dependency graph moves forward with the new core release.
+- Framework packages get minor releases because they re-export `SukooruOptions`, so wrapper consumers can also use the new `hooks.onError` and `strict` options.
