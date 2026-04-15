@@ -1,6 +1,6 @@
 {
   "name": "@sukooru/svelte",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "type": "module",
   "license": "MIT",
   "description": "Svelte bindings for Sukooru scroll restoration.",
