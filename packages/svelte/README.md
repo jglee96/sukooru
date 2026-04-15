@@ -156,6 +156,8 @@ Use `stateHandler` when list data must be rebuilt before Sukooru reapplies scrol
 ## Notes
 
 - For full-window restoration, use the core instance from context and register `window` directly.
+- `@sukooru/svelte` is maintained against Svelte 4 and 5.
+- If `sessionStorage` is blocked, Sukooru falls back to in-memory storage for the current tab session.
 - If native browser restoration conflicts with your app, set `window.history.scrollRestoration = 'manual'` once on the client.
 
 ## See Also

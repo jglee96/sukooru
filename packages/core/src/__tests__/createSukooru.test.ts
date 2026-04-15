@@ -8,6 +8,25 @@ const setWindowScroll = (x: number, y: number): void => {
   ;(window as Window & { scrollX: number; scrollY: number }).scrollY = y
 }
 
+const createAsyncMemoryStorageAdapter = () => {
+  const store = new Map<string, string>()
+
+  return {
+    async get(key: string) {
+      return store.get(key) ?? null
+    },
+    async set(key: string, value: string) {
+      store.set(key, value)
+    },
+    async delete(key: string) {
+      store.delete(key)
+    },
+    async keys() {
+      return Array.from(store.keys())
+    },
+  }
+}
+
 describe('createSukooru', () => {
   beforeEach(() => {
     Object.defineProperty(window, 'scrollX', {
@@ -99,8 +118,31 @@ describe('createSukooru', () => {
     await sukooru.save('b')
     await sukooru.save('c')
 
+    await expect(sukooru.getKeys()).resolves.toEqual(['b', 'c'])
     expect(sukooru.keys).toEqual(['b', 'c'])
     now.mockRestore()
+  })
+
+  it('async custom storage adapter로도 저장과 복원을 처리한다', async () => {
+    const storage = createAsyncMemoryStorageAdapter()
+    const sukooru = createSukooru({
+      storage,
+      waitForDomReady: false,
+    })
+    const element = document.createElement('div')
+    element.scrollTop = 260
+    sukooru.registerContainer(element, 'product-list')
+
+    await sukooru.save('products')
+    await expect(sukooru.getKeys()).resolves.toEqual(['products'])
+
+    element.scrollTop = 0
+
+    await expect(sukooru.restore('products')).resolves.toBe('restored')
+    expect(element.scrollTop).toBe(260)
+
+    await sukooru.clear('products')
+    await expect(sukooru.getKeys()).resolves.toEqual([])
   })
 
   it('커스텀 상태 복원에 실패해도 기본 위치 복원은 유지한다', async () => {
@@ -199,6 +241,68 @@ describe('createSukooru', () => {
     cleanup()
   })
 
+  it('여러 인스턴스가 마운트돼도 history patch를 안전하게 공유한다', () => {
+    const nativePushState = window.history.pushState
+    const nativeReplaceState = window.history.replaceState
+    const first = createSukooru({
+      storage: createMemoryStorageAdapter(),
+      getKey: () => '/first',
+      waitForDomReady: false,
+    })
+    const second = createSukooru({
+      storage: createMemoryStorageAdapter(),
+      getKey: () => '/second',
+      waitForDomReady: false,
+    })
+
+    const cleanupFirst = first.mount()
+    const patchedPushState = window.history.pushState
+    const patchedReplaceState = window.history.replaceState
+
+    const cleanupSecond = second.mount()
+
+    expect(window.history.pushState).toBe(patchedPushState)
+    expect(window.history.replaceState).toBe(patchedReplaceState)
+
+    cleanupFirst()
+
+    expect(window.history.pushState).toBe(patchedPushState)
+    expect(window.history.replaceState).toBe(patchedReplaceState)
+
+    cleanupSecond()
+
+    expect(window.history.pushState).toBe(nativePushState)
+    expect(window.history.replaceState).toBe(nativeReplaceState)
+  })
+
+  it('cleanup 시점에 더 최신의 history patch가 있으면 덮어쓰지 않는다', () => {
+    const nativePushState = window.history.pushState
+    const nativeReplaceState = window.history.replaceState
+    const sukooru = createSukooru({
+      storage: createMemoryStorageAdapter(),
+      waitForDomReady: false,
+    })
+    const cleanup = sukooru.mount()
+
+    const externalPushState = ((...args: Parameters<History['pushState']>) => {
+      nativePushState.apply(window.history, args)
+    }) as History['pushState']
+    const externalReplaceState = ((...args: Parameters<History['replaceState']>) => {
+      nativeReplaceState.apply(window.history, args)
+    }) as History['replaceState']
+
+    window.history.pushState = externalPushState
+    window.history.replaceState = externalReplaceState
+
+    cleanup()
+
+    expect(window.history.pushState).toBe(externalPushState)
+    expect(window.history.replaceState).toBe(externalReplaceState)
+
+    window.history.pushState = nativePushState
+    window.history.replaceState = nativeReplaceState
+  })
+
   it('같은 키에 대한 중복 복원 요청은 하나의 작업으로 합친다', async () => {
     vi.useFakeTimers()
 
@@ -223,9 +327,7 @@ describe('createSukooru', () => {
     const firstRestore = sukooru.restore('/products')
     const secondRestore = sukooru.restore('/products')
 
-    vi.advanceTimersByTime(20)
-    await Promise.resolve()
-    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(20)
 
     await expect(firstRestore).resolves.toBe('restored')
     await expect(secondRestore).resolves.toBe('restored')
@@ -262,13 +364,11 @@ describe('createSukooru', () => {
     const mountedHandle = sukooru.registerContainer(window, 'window')
     const secondRestore = sukooru.restore('/products')
 
-    vi.advanceTimersByTime(20)
-    await Promise.resolve()
-    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(20)
 
     await expect(firstRestore).resolves.toBe('idle')
     await expect(secondRestore).resolves.toBe('restored')
-    expect(restoreBeforeEvents).toEqual(['/products', '/products'])
+    expect(restoreBeforeEvents).toEqual(['/products'])
     expect(window.scrollY).toBe(540)
 
     mountedHandle.unregister()
@@ -285,11 +385,13 @@ describe('createSukooru', () => {
     await sukooru.save('one')
     await sukooru.save('two')
 
-    sukooru.clear('one')
+    await sukooru.clear('one')
+    await expect(sukooru.getKeys()).resolves.toEqual(['two'])
     expect(sukooru.keys).toEqual(['two'])
     expect(sukooru.currentKey).toBe('current')
 
-    sukooru.clearAll()
+    await sukooru.clearAll()
+    await expect(sukooru.getKeys()).resolves.toEqual([])
     expect(sukooru.keys).toEqual([])
   })
 })

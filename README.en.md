@@ -29,6 +29,29 @@ Sukooru is a history-aware scroll restoration library for browser apps. It store
 - [Vite React demo](./examples/vite-react) - full-window, specific-element, virtual-list, and infinite-list restoration
 - [Vanilla demo](./examples/vanilla) - `@sukooru/core` with manual route integration
 
+## Support Matrix
+
+| Area | Current policy |
+| --- | --- |
+| Browsers | Intended for current Chrome, Edge, Firefox, and Safari releases with History API, `sessionStorage`, and `requestAnimationFrame` |
+| Browser CI | Chromium E2E is required in CI |
+| React | React 19 |
+| Next.js | Next.js 15 with React 19 |
+| Vue | Vue 3.3+ |
+| Nuxt | Nuxt 3+ |
+| Svelte | Svelte 4 or 5 |
+| Storage backends | Any sync or async adapter that implements the `StorageAdapter` contract |
+| Node for repo tooling | Node 22.18+ in this workspace |
+
+Firefox and Safari are target browsers, but they are not yet CI-gated. Treat them as intended support rather than continuously verified support until browser-matrix E2E is added.
+
+## Runtime Notes
+
+- If the browser blocks `sessionStorage`, Sukooru falls back to in-memory storage for the current tab session.
+- That fallback keeps save/restore working in restricted environments, but the stored state will not survive a full reload or a new tab.
+- Custom storage adapters may be synchronous or asynchronous, so wrappers around `localStorage`, cookies, IndexedDB, or remote caches can be plugged in from user code.
+- If native browser restoration conflicts with your router, set `window.history.scrollRestoration = 'manual'` once on the client.
+
 ## Package Size Policy
 
 - Treat npm `packed size`, `unpacked size`, and application runtime bundle size as different metrics.
@@ -59,3 +82,8 @@ The skill lives in [skills/sukooru-integration](./skills/sukooru-integration) an
 ## Roadmap
 
 Upcoming work is tracked in [GitHub issues](https://github.com/jglee96/sukooru/issues). Framework-specific usage details and API examples now live in each package README.
+
+## Policies
+
+- [Support Policy](./SUPPORT.md)
+- [Security Policy](./SECURITY.md)

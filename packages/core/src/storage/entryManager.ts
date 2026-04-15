@@ -25,53 +25,53 @@ export class EntryManager<T> {
     this.maxEntries = Math.max(1, maxEntries)
   }
 
-  set(key: ScrollKey, entry: ScrollEntry<T>): void {
-    this.evictExpired()
+  async set(key: ScrollKey, entry: ScrollEntry<T>): Promise<void> {
+    await this.evictExpired()
     const storageKey = this.toStorageKey(key)
     const serialized = this.serializer.serialize(entry)
 
-    this.writeWithEviction(storageKey, serialized)
-    this.evictOverflow(storageKey)
+    await this.writeWithEviction(storageKey, serialized)
+    await this.evictOverflow(storageKey)
   }
 
-  get(key: ScrollKey): ScrollEntry<T> | null {
+  async get(key: ScrollKey): Promise<ScrollEntry<T> | null> {
     const storageKey = this.toStorageKey(key)
-    const entry = this.readStoredEntry(storageKey)?.entry ?? null
+    const entry = (await this.readStoredEntry(storageKey))?.entry ?? null
 
     if (!entry) {
       return null
     }
 
     if (this.isExpired(entry)) {
-      this.storage.delete(storageKey)
+      await this.storage.delete(storageKey)
       return null
     }
 
     return entry
   }
 
-  delete(key: ScrollKey): void {
-    this.storage.delete(this.toStorageKey(key))
+  async delete(key: ScrollKey): Promise<void> {
+    await this.storage.delete(this.toStorageKey(key))
   }
 
-  deleteAll(): void {
-    this.getStorageKeys().forEach((storageKey) => {
-      this.storage.delete(storageKey)
-    })
+  async deleteAll(): Promise<void> {
+    const storageKeys = await this.getStorageKeys()
+
+    await Promise.all(storageKeys.map((storageKey) => this.storage.delete(storageKey)))
   }
 
-  getAllKeys(): ScrollKey[] {
-    this.evictExpired()
-    return this.readAllEntries().map(({ key }) => key)
+  async getAllKeys(): Promise<ScrollKey[]> {
+    await this.evictExpired()
+    return (await this.readAllEntries()).map(({ key }) => key)
   }
 
   isExpired(entry: ScrollEntry<T>): boolean {
     return typeof this.ttl === 'number' && Date.now() - entry.savedAt > this.ttl
   }
 
-  private writeWithEviction(storageKey: string, serialized: string): void {
+  private async writeWithEviction(storageKey: string, serialized: string): Promise<void> {
     try {
-      this.storage.set(storageKey, serialized)
+      await this.storage.set(storageKey, serialized)
       return
     } catch (error) {
       if (!isQuotaExceededError(error)) {
@@ -80,15 +80,15 @@ export class EntryManager<T> {
     }
 
     while (true) {
-      const oldestEntry = this.readOldestEntry(storageKey)
+      const oldestEntry = await this.readOldestEntry(storageKey)
       if (!oldestEntry) {
         throw new Error('저장 공간이 부족해 스크롤 위치를 저장할 수 없습니다.')
       }
 
-      this.storage.delete(oldestEntry.storageKey)
+      await this.storage.delete(oldestEntry.storageKey)
 
       try {
-        this.storage.set(storageKey, serialized)
+        await this.storage.set(storageKey, serialized)
         return
       } catch (error) {
         if (!isQuotaExceededError(error)) {
@@ -98,16 +98,20 @@ export class EntryManager<T> {
     }
   }
 
-  private evictExpired(): void {
-    this.readAllEntries().forEach(({ entry, storageKey }) => {
+  private async evictExpired(): Promise<void> {
+    const entries = await this.readAllEntries()
+
+    await Promise.all(entries.map(async ({ entry, storageKey }) => {
       if (this.isExpired(entry)) {
-        this.storage.delete(storageKey)
+        await this.storage.delete(storageKey)
       }
-    })
+    }))
   }
 
-  private evictOverflow(storageKeyToKeep: string): void {
-    const entries = this.readAllEntries().sort((left, right) => left.entry.savedAt - right.entry.savedAt)
+  private async evictOverflow(storageKeyToKeep: string): Promise<void> {
+    const entries = (await this.readAllEntries()).sort(
+      (left, right) => left.entry.savedAt - right.entry.savedAt,
+    )
     let overflow = entries.length - this.maxEntries
 
     for (const storedEntry of entries) {
@@ -119,34 +123,35 @@ export class EntryManager<T> {
         continue
       }
 
-      this.storage.delete(storedEntry.storageKey)
+      await this.storage.delete(storedEntry.storageKey)
       overflow -= 1
     }
   }
 
-  private readOldestEntry(storageKeyToSkip: string): StoredEntry<T> | null {
-    const candidates = this.readAllEntries()
+  private async readOldestEntry(storageKeyToSkip: string): Promise<StoredEntry<T> | null> {
+    const candidates = (await this.readAllEntries())
       .filter((storedEntry) => storedEntry.storageKey !== storageKeyToSkip)
       .sort((left, right) => left.entry.savedAt - right.entry.savedAt)
 
     return candidates[0] ?? null
   }
 
-  private readAllEntries(): StoredEntry<T>[] {
-    return this.getStorageKeys()
-      .map((storageKey) => this.readStoredEntry(storageKey))
+  private async readAllEntries(): Promise<StoredEntry<T>[]> {
+    const storageKeys = await this.getStorageKeys()
+
+    return (await Promise.all(storageKeys.map((storageKey) => this.readStoredEntry(storageKey))))
       .filter((storedEntry): storedEntry is StoredEntry<T> => storedEntry !== null)
   }
 
-  private readStoredEntry(storageKey: string): StoredEntry<T> | null {
-    const raw = this.storage.get(storageKey)
+  private async readStoredEntry(storageKey: string): Promise<StoredEntry<T> | null> {
+    const raw = await this.storage.get(storageKey)
     if (!raw) {
       return null
     }
 
     const entry = this.serializer.deserialize(raw)
     if (!entry) {
-      this.storage.delete(storageKey)
+      await this.storage.delete(storageKey)
       return null
     }
 
@@ -157,8 +162,8 @@ export class EntryManager<T> {
     }
   }
 
-  private getStorageKeys(): string[] {
-    return this.storage.keys().filter((key) => key.startsWith(STORAGE_PREFIX))
+  private async getStorageKeys(): Promise<string[]> {
+    return (await this.storage.keys()).filter((key) => key.startsWith(STORAGE_PREFIX))
   }
 
   private toStorageKey(key: ScrollKey): string {
@@ -169,4 +174,3 @@ export class EntryManager<T> {
     return decodeURIComponent(storageKey.slice(STORAGE_PREFIX.length))
   }
 }
-

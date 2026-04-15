@@ -1,6 +1,7 @@
 import type { SukooruEvent, SukooruEventHandler } from './events'
 
 export type ScrollKey = string
+export type MaybePromise<T> = T | Promise<T>
 
 export interface ScrollPosition {
   containerId: string
@@ -37,10 +38,10 @@ export interface ScrollStateHandler<T = unknown> {
 }
 
 export interface StorageAdapter {
-  get: (key: string) => string | null
-  set: (key: string, value: string) => void
-  delete: (key: string) => void
-  keys: () => string[]
+  get: (key: string) => MaybePromise<string | null>
+  set: (key: string, value: string) => MaybePromise<void>
+  delete: (key: string) => MaybePromise<void>
+  keys: () => MaybePromise<string[]>
 }
 
 export interface SukooruOptions<T = unknown> {
@@ -60,8 +61,9 @@ export interface ContainerHandle {
 export interface SukooruInstance<T = unknown> {
   save: (key?: ScrollKey) => Promise<void>
   restore: (key?: ScrollKey) => Promise<ScrollRestoreStatus>
-  clear: (key?: ScrollKey) => void
-  clearAll: () => void
+  clear: (key?: ScrollKey) => MaybePromise<void>
+  clearAll: () => MaybePromise<void>
+  getKeys: () => Promise<ScrollKey[]>
   registerContainer: (element: Element | Window, id: string) => ContainerHandle
   setScrollStateHandler: (
     containerId: string,
@@ -75,4 +77,3 @@ export interface SukooruInstance<T = unknown> {
   readonly keys: ScrollKey[]
   readonly currentKey: ScrollKey
 }
-

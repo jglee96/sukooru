@@ -29,6 +29,7 @@ const createMockInstance = (): SukooruInstance<unknown> & {
     restore: async () => 'idle',
     clear: () => {},
     clearAll: () => {},
+    getKeys: async () => [],
     registerContainer: () => createHandle(),
     setScrollStateHandler: () => createHandle(),
     on: () => () => {},

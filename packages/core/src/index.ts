@@ -1,5 +1,9 @@
 export { createSukooru } from './createSukooru'
 export {
+  createSessionStorageAdapter,
+  type CreateSessionStorageAdapterOptions,
+} from './storage/sessionStorageAdapter'
+export {
   createMemoryStorageAdapter,
 } from './storage/memoryStorageAdapter'
 export { sessionStorageAdapter } from './storage/sessionStorageAdapter'
@@ -9,6 +13,7 @@ export {
 } from './storage/serializer'
 export type {
   ContainerHandle,
+  MaybePromise,
   ScrollCustomState,
   ScrollEntry,
   ScrollHooks,

@@ -126,9 +126,54 @@ export const mountInfiniteProducts = async () => {
 
 `ScrollStateHandler` lets you restore list data first, then apply scroll after the DOM is ready again.
 
+## Use A Custom Storage Adapter
+
+`storage` accepts any adapter that implements `get`, `set`, `delete`, and `keys`. Each method may return either a plain value or a promise, so both sync backends like `localStorage` and async backends like IndexedDB wrappers are supported.
+
+```ts
+import { createSukooru, type StorageAdapter } from '@sukooru/core'
+
+const localStorageAdapter: StorageAdapter = {
+  get: (key) => window.localStorage.getItem(key),
+  set: (key, value) => {
+    window.localStorage.setItem(key, value)
+  },
+  delete: (key) => {
+    window.localStorage.removeItem(key)
+  },
+  keys: () => Object.keys(window.localStorage),
+}
+
+const sukooru = createSukooru({
+  getKey: () => window.location.pathname,
+  storage: localStorageAdapter,
+})
+```
+
+```ts
+import { createSukooru, type StorageAdapter } from '@sukooru/core'
+
+const indexedDbLikeAdapter: StorageAdapter = {
+  get: async (key) => await db.get('scroll-state', key),
+  set: async (key, value) => {
+    await db.put('scroll-state', value, key)
+  },
+  delete: async (key) => {
+    await db.delete('scroll-state', key)
+  },
+  keys: async () => await db.getAllKeys('scroll-state'),
+}
+
+const sukooru = createSukooru({
+  getKey: () => window.location.pathname,
+  storage: indexedDbLikeAdapter,
+})
+```
+
 ## Key Exports
 
 - `createSukooru`
+- `createSessionStorageAdapter`
 - `sessionStorageAdapter`
 - `createMemoryStorageAdapter`
 - `createDefaultSerializer`
@@ -136,6 +181,8 @@ export const mountInfiniteProducts = async () => {
 
 ## Notes
 
+- Use `await sukooru.getKeys()` when you need the authoritative key list. `sukooru.keys` is a synchronous snapshot for convenience.
+- `sessionStorageAdapter` falls back to in-memory storage when the browser blocks storage access for the current page session.
 - Set `window.history.scrollRestoration = 'manual'` once on the client if the browser's native restoration conflicts with your app.
 - Use a stable `scrollKey` such as `/products` when you want the saved position to belong to a list route instead of the current detail URL.
 

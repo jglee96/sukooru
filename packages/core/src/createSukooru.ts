@@ -1,5 +1,6 @@
 import { ContainerRegistry } from './containerRegistry'
 import { TypedEventEmitter } from './events'
+import { subscribeToBrowserHistory } from './historyPatchManager'
 import { ScrollStateRegistry } from './scrollStateRegistry'
 import { EntryManager } from './storage/entryManager'
 import { createDefaultSerializer } from './storage/serializer'
@@ -97,6 +98,7 @@ export const createSukooru = <T = unknown>(
 
   let mountedCleanup: (() => void) | null = null
   let currentTrackedKey = getKey()
+  let keysSnapshot: ScrollKey[] = []
   let activeRestore:
     | {
         key: ScrollKey
@@ -107,6 +109,10 @@ export const createSukooru = <T = unknown>(
     | null = null
 
   const resolveKey = (key?: ScrollKey): ScrollKey => key ?? getKey()
+  const refreshKeysSnapshot = async (): Promise<ScrollKey[]> => {
+    keysSnapshot = await entryManager.getAllKeys()
+    return keysSnapshot
+  }
 
   const collectPositions = (): ScrollPosition[] => {
     return containerRegistry
@@ -192,7 +198,8 @@ export const createSukooru = <T = unknown>(
     emitter.emit('save:before', { key: resolvedKey, entry })
 
     try {
-      entryManager.set(resolvedKey, entry)
+      await entryManager.set(resolvedKey, entry)
+      await refreshKeysSnapshot()
       emitter.emit('save:after', { key: resolvedKey, entry })
     } catch (error) {
       emitter.emit('save:error', { key: resolvedKey, entry, error })
@@ -202,26 +209,6 @@ export const createSukooru = <T = unknown>(
 
   const restore = async (key?: ScrollKey): Promise<ScrollRestoreStatus> => {
     const resolvedKey = resolveKey(key)
-    const entry = entryManager.get(resolvedKey)
-
-    if (!entry) {
-      emitter.emit('restore:miss', { key: resolvedKey })
-      return 'missed'
-    }
-
-    let cancelled = false
-    hooks.onBeforeRestore?.({
-      key: resolvedKey,
-      entry,
-      cancel: () => {
-        cancelled = true
-      },
-    })
-
-    if (cancelled) {
-      return 'idle'
-    }
-
     const currentContainerRevision = containerRegistry.getRevision()
 
     if (
@@ -234,9 +221,36 @@ export const createSukooru = <T = unknown>(
     activeRestore?.controller.abort()
     const controller = new AbortController()
     const restorePromise = (async (): Promise<ScrollRestoreStatus> => {
-      emitter.emit('restore:before', { key: resolvedKey, entry })
+      let entry: ScrollEntry<T> | null = null
 
       try {
+        entry = await entryManager.get(resolvedKey)
+
+        if (controller.signal.aborted) {
+          return 'idle'
+        }
+
+        if (!entry) {
+          await refreshKeysSnapshot()
+          emitter.emit('restore:miss', { key: resolvedKey })
+          return 'missed'
+        }
+
+        let cancelled = false
+        hooks.onBeforeRestore?.({
+          key: resolvedKey,
+          entry,
+          cancel: () => {
+            cancelled = true
+          },
+        })
+
+        if (cancelled || controller.signal.aborted) {
+          return 'idle'
+        }
+
+        emitter.emit('restore:before', { key: resolvedKey, entry })
+
         await delay(restoreDelay)
 
         if (waitForDomReady) {
@@ -284,14 +298,16 @@ export const createSukooru = <T = unknown>(
     return restorePromise
   }
 
-  const clear = (key?: ScrollKey): void => {
+  const clear = async (key?: ScrollKey): Promise<void> => {
     const resolvedKey = resolveKey(key)
-    entryManager.delete(resolvedKey)
+    await entryManager.delete(resolvedKey)
+    await refreshKeysSnapshot()
     emitter.emit('clear', { key: resolvedKey || null })
   }
 
-  const clearAll = (): void => {
-    entryManager.deleteAll()
+  const clearAll = async (): Promise<void> => {
+    await entryManager.deleteAll()
+    keysSnapshot = []
     emitter.emit('clear', { key: null })
   }
 
@@ -327,43 +343,28 @@ export const createSukooru = <T = unknown>(
     }
 
     currentTrackedKey = getKey()
-    const originalPushState = window.history.pushState.bind(window.history)
-    const originalReplaceState = window.history.replaceState.bind(window.history)
+    const unsubscribeHistory = subscribeToBrowserHistory({
+      syncCurrentKey: () => {
+        currentTrackedKey = getKey()
+      },
+      onPopState: async () => {
+        const leavingKey = currentTrackedKey
+        const arrivingKey = getKey()
 
-    window.history.pushState = (...args) => {
-      originalPushState(...args)
-      currentTrackedKey = getKey()
-    }
+        try {
+          await save(leavingKey)
+        } catch {
+          // 저장 실패가 복원까지 막으면 사용자가 더 큰 어긋남을 겪게 된다.
+        }
 
-    window.history.replaceState = (...args) => {
-      originalReplaceState(...args)
-      currentTrackedKey = getKey()
-    }
-
-    const handlePopState = async (): Promise<void> => {
-      const leavingKey = currentTrackedKey
-      const arrivingKey = getKey()
-
-      try {
-        await save(leavingKey)
-      } catch {
-        // 저장 실패가 복원까지 막으면 사용자가 더 큰 어긋남을 겪게 된다.
-      }
-
-      await restore(arrivingKey)
-      currentTrackedKey = arrivingKey
-    }
-
-    window.addEventListener('popstate', handlePopState)
+        await restore(arrivingKey)
+        currentTrackedKey = arrivingKey
+      },
+    })
     emitter.emit('mount', {})
 
     mountedCleanup = () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('popstate', handlePopState)
-        window.history.pushState = originalPushState
-        window.history.replaceState = originalReplaceState
-      }
-
+      unsubscribeHistory()
       activeRestore?.controller.abort()
       activeRestore = null
       mountedCleanup = null
@@ -373,17 +374,22 @@ export const createSukooru = <T = unknown>(
     return mountedCleanup
   }
 
+  void refreshKeysSnapshot().catch(() => {
+    keysSnapshot = []
+  })
+
   return {
     save,
     restore,
     clear,
     clearAll,
+    getKeys: refreshKeysSnapshot,
     registerContainer,
     setScrollStateHandler,
     on: emitter.on.bind(emitter),
     mount,
     get keys() {
-      return entryManager.getAllKeys()
+      return keysSnapshot
     },
     get currentKey() {
       return getKey()
