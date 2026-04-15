@@ -29,12 +29,11 @@ Sukooru는 브라우저 앱을 위한 history-aware scroll restoration 라이브
 - [Vite React demo](./examples/vite-react) - 전체 window 스크롤, 특정 element 스크롤, virtual list, infinite list 복원 패턴
 - [Vanilla demo](./examples/vanilla) - `@sukooru/core`를 직접 연결하는 수동 라우팅 예제
 
-## 지원 범위
+## 지원 대상
 
-| 항목 | 현재 정책 |
+| 항목 | 의도된 지원 범위 |
 | --- | --- |
 | 브라우저 | History API, `sessionStorage`, `requestAnimationFrame`를 지원하는 최신 Chrome, Edge, Firefox, Safari |
-| 브라우저 CI | Chromium E2E를 필수로 검증 |
 | React | React 19 |
 | Next.js | React 19 기반 Next.js 15 |
 | Vue | Vue 3.3+ |
@@ -43,7 +42,16 @@ Sukooru는 브라우저 앱을 위한 history-aware scroll restoration 라이브
 | 저장소 백엔드 | `StorageAdapter` 계약만 맞으면 sync/async 커스텀 adapter 지원 |
 | 레포 툴링용 Node | 현재 워크스페이스 기준 Node 22.18+ |
 
-Firefox와 Safari도 지원 대상으로 보지만, 아직 CI에서 필수 브라우저 매트릭스로 돌리지는 않습니다. 즉 의도된 지원 범위이지만 Chromium만큼 연속 검증되는 상태는 아닙니다.
+## 현재 CI 검증
+
+- GitHub Actions `ubuntu-latest`에서 Node `22.18.0` 기준으로 `pnpm typecheck`, `pnpm test -- --coverage`, `pnpm build`를 실행합니다.
+- 브라우저 E2E는 Playwright로 Vite React demo 하나를 띄운 뒤 Chrome 채널에서 `/products`와 `/virtual` 뒤로가기 복원 시나리오를 검증합니다.
+- 프레임워크 어댑터는 React, Vue, Svelte, Next.js, Nuxt 패키지 단위의 unit test로 검증합니다.
+
+## 아직 연속 검증되지 않는 범위
+
+- Firefox, WebKit, Safari, Edge는 지원 대상이지만 현재 CI 필수 브라우저 매트릭스에는 들어가 있지 않습니다.
+- Next.js와 Nuxt는 패키지 API 단위 테스트는 있지만, 현재 메인 브랜치 CI에서는 실제 consumer app을 부팅해 검증하지는 않습니다.
 
 ## 런타임 메모
 
@@ -77,7 +85,7 @@ npx skills add https://github.com/jglee96/sukooru --skill sukooru-integration
 - virtual list와 infinite list를 위한 custom `ScrollStateHandler`
 - React, Vue, Next.js, Nuxt, Svelte adapter
 - 실행 가능한 React, Vanilla 예제
-- 뒤로가기 복원을 검증하는 Playwright E2E coverage
+- Vite React demo 기준 뒤로가기 복원을 검증하는 Chromium Playwright E2E
 
 ## 로드맵
 

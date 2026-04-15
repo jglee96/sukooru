@@ -29,12 +29,11 @@ Sukooru is a history-aware scroll restoration library for browser apps. It store
 - [Vite React demo](./examples/vite-react) - full-window, specific-element, virtual-list, and infinite-list restoration
 - [Vanilla demo](./examples/vanilla) - `@sukooru/core` with manual route integration
 
-## Support Matrix
+## Intended Support
 
-| Area | Current policy |
+| Area | Intended support range |
 | --- | --- |
 | Browsers | Intended for current Chrome, Edge, Firefox, and Safari releases with History API, `sessionStorage`, and `requestAnimationFrame` |
-| Browser CI | Chromium E2E is required in CI |
 | React | React 19 |
 | Next.js | Next.js 15 with React 19 |
 | Vue | Vue 3.3+ |
@@ -43,7 +42,16 @@ Sukooru is a history-aware scroll restoration library for browser apps. It store
 | Storage backends | Any sync or async adapter that implements the `StorageAdapter` contract |
 | Node for repo tooling | Node 22.18+ in this workspace |
 
-Firefox and Safari are target browsers, but they are not yet CI-gated. Treat them as intended support rather than continuously verified support until browser-matrix E2E is added.
+## What CI Verifies Today
+
+- GitHub Actions runs `pnpm typecheck`, `pnpm test -- --coverage`, and `pnpm build` on `ubuntu-latest` with Node `22.18.0`.
+- Browser E2E coverage is currently a single Playwright target: the Vite React demo on the Chrome channel, covering back-navigation restore on `/products` and `/virtual`.
+- Framework adapters are validated with package-level unit tests for React, Vue, Svelte, Next.js, and Nuxt.
+
+## What Is Not Yet Continuously Verified
+
+- Firefox, WebKit, Safari, and Edge remain target browsers, but they are not yet part of the required CI browser matrix.
+- Next.js and Nuxt have package API coverage, but main-branch CI does not yet boot real consumer apps for them.
 
 ## Runtime Notes
 
@@ -77,7 +85,7 @@ The skill lives in [skills/sukooru-integration](./skills/sukooru-integration) an
 - custom `ScrollStateHandler` support for virtual and infinite lists
 - React, Vue, Next.js, Nuxt, and Svelte adapters
 - runnable React and vanilla examples
-- Playwright E2E coverage for back-navigation restore
+- Chromium Playwright E2E coverage for back-navigation restore in the Vite React demo
 
 ## Roadmap
 
