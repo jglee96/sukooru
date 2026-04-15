@@ -16,6 +16,8 @@ export type {
   MaybePromise,
   ScrollCustomState,
   ScrollEntry,
+  SukooruErrorContext,
+  SukooruErrorPhase,
   ScrollHooks,
   ScrollKey,
   ScrollPosition,

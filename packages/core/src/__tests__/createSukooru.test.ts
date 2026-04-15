@@ -147,9 +147,15 @@ describe('createSukooru', () => {
 
   it('커스텀 상태 복원에 실패해도 기본 위치 복원은 유지한다', async () => {
     const storage = createMemoryStorageAdapter()
+    const hookErrors: string[] = []
     const sukooru = createSukooru({
       storage,
       waitForDomReady: false,
+      hooks: {
+        onError: ({ phase, error }) => {
+          hookErrors.push(`${phase}:${error instanceof Error ? error.message : String(error)}`)
+        },
+      },
     })
     const element = document.createElement('div')
     const errors: unknown[] = []
@@ -173,7 +179,46 @@ describe('createSukooru', () => {
     await expect(sukooru.restore('infinite')).resolves.toBe('restored')
 
     expect(errors).toHaveLength(1)
+    expect(hookErrors).toEqual(['restore:custom-state:복원 실패'])
     expect(element.scrollTop).toBe(480)
+  })
+
+  it('captureState 예외도 onError 훅과 save:error 이벤트로 전달한다', async () => {
+    const eventErrors: unknown[] = []
+    const hookErrors: Array<{ phase: string; key: string | null; message: string }> = []
+    const sukooru = createSukooru({
+      storage: createMemoryStorageAdapter(),
+      waitForDomReady: false,
+      hooks: {
+        onError: ({ phase, key, error }) => {
+          hookErrors.push({
+            phase,
+            key,
+            message: error instanceof Error ? error.message : String(error),
+          })
+        },
+      },
+    })
+
+    sukooru.on('save:error', ({ error }) => {
+      eventErrors.push(error)
+    })
+    sukooru.setScrollStateHandler('product-list', {
+      captureState: () => {
+        throw new Error('capture failed')
+      },
+      applyState: () => {},
+    })
+
+    await expect(sukooru.save('products')).rejects.toThrow('capture failed')
+    expect(eventErrors).toHaveLength(1)
+    expect(hookErrors).toEqual([
+      {
+        phase: 'save',
+        key: 'products',
+        message: 'capture failed',
+      },
+    ])
   })
 
   it('popstate 시 출발 키를 저장하고 도착 키를 복원한다', async () => {
@@ -422,6 +467,77 @@ describe('createSukooru', () => {
         applyState: () => {},
       }),
     ).not.toThrow()
+  })
+
+  it('restore 실패는 기본적으로 idle을 반환하면서 onError 훅에 전달한다', async () => {
+    const hookErrors: Array<{ phase: string; key: string | null; message: string }> = []
+    const sukooru = createSukooru({
+      storage: {
+        async get() {
+          throw new Error('restore failed')
+        },
+        async set() {},
+        async delete() {},
+        async keys() {
+          return []
+        },
+      },
+      waitForDomReady: false,
+      hooks: {
+        onError: ({ phase, key, error }) => {
+          hookErrors.push({
+            phase,
+            key,
+            message: error instanceof Error ? error.message : String(error),
+          })
+        },
+      },
+    })
+
+    await expect(sukooru.restore('products')).resolves.toBe('idle')
+    expect(hookErrors).toEqual([
+      {
+        phase: 'restore',
+        key: 'products',
+        message: 'restore failed',
+      },
+    ])
+  })
+
+  it('strict 모드에서는 restore 실패를 호출자에게 다시 던진다', async () => {
+    const hookErrors: Array<{ phase: string; key: string | null; message: string }> = []
+    const sukooru = createSukooru({
+      storage: {
+        async get() {
+          throw new Error('restore failed')
+        },
+        async set() {},
+        async delete() {},
+        async keys() {
+          return []
+        },
+      },
+      strict: true,
+      waitForDomReady: false,
+      hooks: {
+        onError: ({ phase, key, error }) => {
+          hookErrors.push({
+            phase,
+            key,
+            message: error instanceof Error ? error.message : String(error),
+          })
+        },
+      },
+    })
+
+    await expect(sukooru.restore('products')).rejects.toThrow('restore failed')
+    expect(hookErrors).toEqual([
+      {
+        phase: 'restore',
+        key: 'products',
+        message: 'restore failed',
+      },
+    ])
   })
 
   it('clear와 clearAll이 저장 항목을 정리한다', async () => {

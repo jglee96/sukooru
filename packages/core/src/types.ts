@@ -28,9 +28,19 @@ export interface ScrollHooks<T = unknown> {
     entry: ScrollEntry<T>
     cancel: () => void
   }) => void
+  onError?: (context: SukooruErrorContext<T>) => void
 }
 
 export type ScrollRestoreStatus = 'idle' | 'restoring' | 'restored' | 'missed'
+
+export type SukooruErrorPhase = 'save' | 'restore' | 'restore:custom-state' | 'keys'
+
+export interface SukooruErrorContext<T = unknown> {
+  phase: SukooruErrorPhase
+  key: ScrollKey | null
+  entry: ScrollEntry<T> | null
+  error: unknown
+}
 
 export interface ScrollStateHandler<T = unknown> {
   captureState: () => T
@@ -52,6 +62,7 @@ export interface SukooruOptions<T = unknown> {
   hooks?: ScrollHooks<T>
   restoreDelay?: number
   waitForDomReady?: boolean
+  strict?: boolean
 }
 
 export interface ContainerHandle {

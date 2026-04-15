@@ -12,6 +12,7 @@ import type {
   ScrollKey,
   ScrollPosition,
   ScrollRestoreStatus,
+  SukooruErrorPhase,
   SukooruInstance,
   SukooruOptions,
 } from './types'
@@ -89,6 +90,7 @@ export const createSukooru = <T = unknown>(
     hooks = {},
     restoreDelay = 0,
     waitForDomReady = true,
+    strict = false,
   } = options
 
   const emitter = new TypedEventEmitter<T>()
@@ -112,6 +114,19 @@ export const createSukooru = <T = unknown>(
   const refreshKeysSnapshot = async (): Promise<ScrollKey[]> => {
     keysSnapshot = await entryManager.getAllKeys()
     return keysSnapshot
+  }
+  const notifyError = (
+    phase: SukooruErrorPhase,
+    key: ScrollKey | null,
+    entry: ScrollEntry<T> | null,
+    error: unknown,
+  ): void => {
+    hooks.onError?.({
+      phase,
+      key,
+      entry,
+      error,
+    })
   }
 
   const collectPositions = (): ScrollPosition[] => {
@@ -156,6 +171,7 @@ export const createSukooru = <T = unknown>(
         await handler.applyState(state)
       } catch (error) {
         emitter.emit('restore:error', { key, entry, error })
+        notifyError('restore:custom-state', key, entry, error)
       }
     }
   }
@@ -178,31 +194,34 @@ export const createSukooru = <T = unknown>(
     const resolvedKey = resolveKey(key)
     const entry: ScrollEntry<T> = {
       savedAt: Date.now(),
-      positions: collectPositions(),
-      customState: captureCustomState(),
+      positions: [],
+      customState: null,
     }
-
-    let cancelled = false
-    hooks.onBeforeSave?.({
-      key: resolvedKey,
-      entry,
-      cancel: () => {
-        cancelled = true
-      },
-    })
-
-    if (cancelled) {
-      return
-    }
-
-    emitter.emit('save:before', { key: resolvedKey, entry })
 
     try {
+      entry.positions = collectPositions()
+      entry.customState = captureCustomState()
+
+      let cancelled = false
+      hooks.onBeforeSave?.({
+        key: resolvedKey,
+        entry,
+        cancel: () => {
+          cancelled = true
+        },
+      })
+
+      if (cancelled) {
+        return
+      }
+
+      emitter.emit('save:before', { key: resolvedKey, entry })
       await entryManager.set(resolvedKey, entry)
       await refreshKeysSnapshot()
       emitter.emit('save:after', { key: resolvedKey, entry })
     } catch (error) {
       emitter.emit('save:error', { key: resolvedKey, entry, error })
+      notifyError('save', resolvedKey, entry, error)
       throw error
     }
   }
@@ -280,6 +299,10 @@ export const createSukooru = <T = unknown>(
         return 'restored'
       } catch (error) {
         emitter.emit('restore:error', { key: resolvedKey, entry, error })
+        notifyError('restore', resolvedKey, entry, error)
+        if (strict) {
+          throw error
+        }
         return 'idle'
       } finally {
         if (activeRestore?.controller === controller) {
@@ -374,8 +397,9 @@ export const createSukooru = <T = unknown>(
     return mountedCleanup
   }
 
-  void refreshKeysSnapshot().catch(() => {
+  void refreshKeysSnapshot().catch((error) => {
     keysSnapshot = []
+    notifyError('keys', null, null, error)
   })
 
   return {
