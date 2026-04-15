@@ -375,6 +375,55 @@ describe('createSukooru', () => {
     vi.useRealTimers()
   })
 
+  it('같은 containerId를 중복 등록하면 명시적으로 실패한다', () => {
+    const sukooru = createSukooru({
+      storage: createMemoryStorageAdapter(),
+      waitForDomReady: false,
+    })
+    const first = document.createElement('div')
+    const second = document.createElement('div')
+
+    const handle = sukooru.registerContainer(first, 'product-list')
+
+    expect(() => sukooru.registerContainer(second, 'product-list')).toThrowError(
+      'Sukooru container "product-list" is already registered. Container ids must be globally unique until unregistered.',
+    )
+
+    handle.unregister()
+
+    expect(() => sukooru.registerContainer(second, 'product-list')).not.toThrow()
+  })
+
+  it('같은 containerId에 custom state handler를 중복 등록하면 명시적으로 실패한다', () => {
+    const sukooru = createSukooru<{ cursor: string }>({
+      storage: createMemoryStorageAdapter(),
+      waitForDomReady: false,
+    })
+
+    const handle = sukooru.setScrollStateHandler('product-list', {
+      captureState: () => ({ cursor: 'page-1' }),
+      applyState: () => {},
+    })
+
+    expect(() =>
+      sukooru.setScrollStateHandler('product-list', {
+        captureState: () => ({ cursor: 'page-2' }),
+        applyState: () => {},
+      }),
+    ).toThrowError(
+      'Sukooru scroll state handler for "product-list" is already registered. Unregister the existing handler before replacing it.',
+    )
+
+    handle.unregister()
+
+    expect(() =>
+      sukooru.setScrollStateHandler('product-list', {
+        captureState: () => ({ cursor: 'page-2' }),
+        applyState: () => {},
+      }),
+    ).not.toThrow()
+  })
+
   it('clear와 clearAll이 저장 항목을 정리한다', async () => {
     const sukooru = createSukooru({
       storage: createMemoryStorageAdapter(),

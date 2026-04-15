@@ -8,6 +8,12 @@ export class ContainerRegistry {
   private revision = 0
 
   register(element: Element | Window, id: string): symbol {
+    if (this.containers.has(id)) {
+      throw new Error(
+        `Sukooru container "${id}" is already registered. Container ids must be globally unique until unregistered.`,
+      )
+    }
+
     const token = Symbol(id)
     this.containers.set(id, { element, token })
     this.revision += 1

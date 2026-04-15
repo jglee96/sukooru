@@ -9,6 +9,12 @@ export class ScrollStateRegistry<T> {
   private readonly handlers = new Map<string, RegisteredHandler<T>>()
 
   register(containerId: string, handler: ScrollStateHandler<T>): symbol {
+    if (this.handlers.has(containerId)) {
+      throw new Error(
+        `Sukooru scroll state handler for "${containerId}" is already registered. Unregister the existing handler before replacing it.`,
+      )
+    }
+
     const token = Symbol(containerId)
     this.handlers.set(containerId, { handler, token })
     return token
@@ -34,4 +40,3 @@ export class ScrollStateRegistry<T> {
     ])
   }
 }
-
