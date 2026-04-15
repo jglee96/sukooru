@@ -75,6 +75,9 @@ jobs:
           git fetch origin main
           git rebase origin/main
 
+      - name: Run release checks
+        run: pnpm release:check
+
       - name: Publish packages
         run: pnpm release
         env:
