@@ -138,6 +138,7 @@ const DemoNavigation = ({
           <button
             key={demo.kind}
             type="button"
+            data-testid={`demo-nav-${demo.kind}`}
             className={`demo-nav__button${isActive ? ' demo-nav__button--active' : ''}`}
             onClick={() => onNavigate(demo.kind)}
           >
@@ -452,6 +453,7 @@ const InfiniteCatalogPage = ({ onNavigateDemo, onSelectItem }: DemoPageProps) =>
               <li key={`infinite-${item.id}`}>
                 <button
                   type="button"
+                  data-testid={`infinite-card-${item.id}`}
                   className="infinite-card"
                   style={{ '--item-tint': item.tint } as CSSProperties}
                   onClick={() => onSelectItem(demo.kind, item)}
