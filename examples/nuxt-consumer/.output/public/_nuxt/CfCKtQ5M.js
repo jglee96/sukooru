@@ -1,1 +1,0 @@
-import{_ as o}from"./DsTXCiDd.js";import{_ as n,c as s,a as r,b as a,w as _,o as c,d}from"./D0amimgq.js";const u={},p={style:{padding:"24px"}};function i(x,t){const e=o;return c(),s("main",p,[t[1]||(t[1]=r("h1",null,"Sukooru Nuxt Fixture",-1)),a(e,{to:"/products"},{default:_(()=>[...t[0]||(t[0]=[d("Open products",-1)])]),_:1})])}const l=n(u,[["render",i]]);export{l as default};

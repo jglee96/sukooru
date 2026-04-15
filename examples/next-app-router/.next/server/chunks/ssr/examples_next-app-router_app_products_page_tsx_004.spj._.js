@@ -1,3 +1,0 @@
-module.exports=[25545,a=>{"use strict";var b=a.i(27357);a.i(6077);var c=a.i(47601);let d=Array.from({length:24},(a,b)=>({id:b+1,name:`Fixture product ${b+1}`}));a.s(["default",0,function(){let{ref:a,status:e}=(0,c.useScrollRestore)({containerId:"product-list"});return(0,b.jsxs)("main",{ref:a,style:{height:"100vh",overflowY:"auto",padding:24},children:[(0,b.jsxs)("p",{children:["Status: ",e]}),(0,b.jsx)("ul",{style:{display:"grid",gap:12,padding:0},children:d.map(a=>(0,b.jsx)("li",{style:{border:"1px solid #d1d5db",borderRadius:12,listStyle:"none",minHeight:96,padding:16},children:a.name},a.id))})]})}])}];
-
-//# sourceMappingURL=examples_next-app-router_app_products_page_tsx_004.spj._.js.map
