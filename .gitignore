@@ -5,3 +5,7 @@ coverage
 test-results/
 .DS_Store
 .playwright-mcp/
+.next
+.nuxt
+.output
+*.tsbuildinfo

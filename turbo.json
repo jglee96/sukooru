@@ -3,7 +3,13 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"]
+      "outputs": [
+        "dist/**",
+        ".next/**",
+        ".nuxt/**",
+        ".output/**",
+        "node_modules/.cache/nuxt/**"
+      ]
     },
     "test": {
       "dependsOn": ["^build"]
@@ -11,4 +17,3 @@
     "typecheck": {}
   }
 }
-
