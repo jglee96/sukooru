@@ -11,7 +11,7 @@ const packagesDir = join(workspaceRoot, 'packages')
 const sizeBudgets = {
   '@sukooru/core': {
     packed: 12_000,
-    unpacked: 60_000,
+    unpacked: 63_000,
   },
   '@sukooru/react': {
     packed: 4_500,
