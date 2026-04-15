@@ -16,7 +16,13 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'lcov'],
       include: ['src/**/*.ts', 'src/**/*.tsx'],
-      exclude: ['src/__tests__/**'],
+      exclude: ['src/__tests__/**', 'src/index.ts', 'src/**/*.d.ts'],
+      thresholds: {
+        statements: 88,
+        branches: 58,
+        functions: 78,
+        lines: 88,
+      },
     },
   },
 })
