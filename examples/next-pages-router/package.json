@@ -1,0 +1,26 @@
+{
+  "name": "@sukooru/example-next-pages-router",
+  "private": true,
+  "version": "0.1.2",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "build": "next build",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "echo \"Next Pages Router fixture는 build/typecheck로 검증합니다.\""
+  },
+  "dependencies": {
+    "@sukooru/next": "workspace:*",
+    "next": "16.2.3",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.2"
+  }
+}
